@@ -1,398 +1,190 @@
-# 🏷 Tagged
+# Tagged Primitives
 
-[![CI](https://github.com/pointfreeco/swift-tagged/workflows/CI/badge.svg)](https://actions-badge.atrox.dev/pointfreeco/swift-tagged/goto)
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fswift-tagged%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/pointfreeco/swift-tagged)
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fpointfreeco%2Fswift-tagged%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/pointfreeco/swift-tagged)
+![Development Status](https://img.shields.io/badge/status-active--development-blue.svg)
 
-A wrapper type for safer, expressive code.
+Phantom-typed value wrappers for zero-cost type safety — `Tagged<Tag, RawValue>` gives ecosystem types like `Index<Element>`, `Cardinal`, `Ordinal`, and `Hash.Value` their type-level identity without runtime cost, including across `~Copyable` and `~Escapable` raw values.
 
-## Table of Contents
+> Forked from [`pointfreeco/swift-tagged`](https://github.com/pointfreeco/swift-tagged). The Institute fork keeps the `Tagged<Tag, RawValue>` shape but constrains the default conformance surface — operator non-forwarding is a feature (preventing `Index<Graph> + Index<Bit>` from compiling); `~Copyable` and `~Escapable` are admitted on both `Tag` and `RawValue`; Foundation is excluded; and stdlib protocol conformances that swift-tagged ships by default (`RawRepresentable`, `Strideable`, `AdditiveArithmetic` / `Numeric`, `@dynamicMemberLookup`, …) are absent from the main module. The opt-in `Tagged Primitives Standard Library Integration` target ships the conformances that are empirically authorable and policy-permissible: `Identifiable`, `LosslessStringConvertible`, `Sequence`, `Collection`, and the `ExpressibleBy*Literal` family — including `ExpressibleByArrayLiteral` / `ExpressibleByDictionaryLiteral` via a documented `unsafeBitCast` carve-out (the **first and only** exception from the package's `[MEM-SAFE-001]` strict-memory-safety opt-in, bounded to two specific function-type-reinterpretation sites and traceable to [`Research/principled-absence-array-dict-literal.md`](./Research/principled-absence-array-dict-literal.md) v1.2.0). Excluded conformances fall into three categories: structural Swift-level blocker (`RawRepresentable`, `@dynamicMemberLookup`), Foundation axiom (`LocalizedError`, `UUID` inits), or policy trade-off — `Strideable` is excluded from SLI to keep the literal-conformance footgun dormant for SLI-only consumers (see [`Research/sli-literal-vs-strideable-tradeoff.md`](./Research/sli-literal-vs-strideable-tradeoff.md)). The fork is heritage-only per `[HERITAGE-004]`: divergence is principled and permanent; upstream changes are re-authored, not merged. Per-protocol absence rationales — each empirically verified — live in [`Research/`](./Research/) (`principled-absence-*.md`) with paired experiments in [`Experiments/`](./Experiments/) (`tagged-no-*/`).
 
-  - [Motivation](#motivation)
-  - [The problem](#the-problem)
-  - [The solution](#the-solution)
-      - [Handling tag collisions](#handling-tag-collisions)
-      - [Accessing raw values](#accessing-raw-values)
-  - [Features](#features)
-  - [Nanolibraries](#nanolibraries)
-  - [FAQ](#faq)
-  - [Installation](#installation)
-  - [Interested in learning more?](#interested-in-learning-more)
-  - [License](#license)
+---
 
-## Motivation
+## Key Features
 
-We often work with types that are far too general or hold far too many values than what is necessary for our domain. Sometimes we just want to differentiate between two seemingly equivalent values at the type level.
+- **Zero-cost phantom discrimination** — `Tagged<Tag, RawValue>` stores exactly one field; with `@inlinable`, release-mode codegen is identical to the underlying `RawValue` (verified in `Experiments/tagged-zero-cost-codegen`).
+- **Operator non-forwarding is a feature** — arithmetic on `RawValue` is never automatically available on `Tagged`, preventing `Index<Graph> + Index<Bit>.Count` from compiling even though both wrap types with a defined `+`. Operations are declared per-domain with matching `Tag` constraints.
+- **Universal `Tag: ~Copyable & ~Escapable`** — every extension lifts the tag's copyability and escapability constraints, so phantom-typed indices into `~Copyable` containers (`Index<Element>` where `Element: ~Copyable`) do not lose their operators.
+- **`~Copyable` and `~Escapable` `RawValue`** — `Tagged` admits move-only and lifetime-bounded wrapped values; the ecosystem's typed pointers and scoped references (`Ownership.Inout`, `Ownership.Borrow`) wrap cleanly. This dimension is unique among phantom-type wrappers across Swift, Haskell, Rust, OCaml, and TypeScript.
+- **`Ownership.Borrow.Protocol` conformance** (ships with `swift-ownership-primitives`) — `Tagged<Tag, RawValue>` is `Ownership.Borrow.Protocol` when `RawValue` is; `Tagged.Borrowed` resolves to `RawValue.Borrowed`. The conformance lives in `swift-ownership-primitives/Sources/Ownership Borrow Primitives/`, matching the ecosystem convention where conformances of Tagged to non-stdlib capability protocols live with the protocol's home package (see `swift-ordinal-primitives` for the same pattern with `Ordinal.Protocol`).
+- **`Carrier` cascading conformance** (ships in this package) — `Tagged<Tag, RawValue>` is `Carrier` when `RawValue` is, with `Underlying` cascading through `RawValue.Underlying`. APIs declared as `some Carrier<Cardinal>` accept bare `Cardinal` AND `Tagged<Tag, Cardinal>` uniformly; nested wrappers like `Tagged<X, Tagged<Y, Cardinal>>` resolve to the innermost trivial-self carrier. The phantom `Tag` becomes Carrier's `Domain` discriminator.
 
-An email address is nothing but a `String`, but it should be restricted in the ways in which it can be used. And while a `User` id may be represented with an `Int`, it should be distinguishable from an `Int`-based `Subscription` id.
+---
 
-Tagged can help solve serious runtime bugs at compile time by wrapping basic types in more specific contexts with ease.
+## Quick Start
 
-## The problem
+### Domain-identity without a parallel struct
 
-Swift has an incredibly powerful type system, yet it's still common to model most data like this:
+```swift
+import Tagged_Primitives
 
-``` swift
-struct User {
-  let id: Int
-  let email: String
-  let address: String
-  let subscriptionId: Int?
-}
+public enum User {}
+public enum Order {}
 
-struct Subscription {
-  let id: Int
-}
+extension User  { public typealias ID = Tagged<User,  UInt64> }
+extension Order { public typealias ID = Tagged<Order, UInt64> }
+
+let user:  User.ID  = 42
+let order: Order.ID = 42
+// user == order         // Compile error: Tagged<User, ...> ≠ Tagged<Order, ...>
 ```
 
-We're modeling user and subscription ids using _the same type_, but our app logic shouldn't treat these values interchangeably! We might write a function to fetch a subscription:
+The hand-rolled equivalent per domain — one struct, one init, one `rawValue` accessor, one conformance stack — multiplied across every ID type in the system. `Tagged` collapses it to one declaration.
 
-``` swift
-func fetchSubscription(byId id: Int) -> Subscription? {
-  return subscriptions.first(where: { $0.id == id })
-}
-```
+### Phantom-typed indices into `~Copyable` containers
 
-Code like this is super common, but it allows for serious runtime bugs and security issues! The following compiles, runs, and even reads reasonably at a glance:
+```swift
+import Tagged_Primitives
+import Ordinal_Primitives
 
-``` swift
-let subscription = fetchSubscription(byId: user.id)
-```
-
-This code will fail to find a user's subscription. Worse yet, if a user id and subscription id overlap, it will display the _wrong_ subscription to the _wrong_ user! It may even surface sensitive data like billing details!
-
-## The solution
-
-We can use Tagged to succinctly differentiate types.
-
-``` swift
-import Tagged
-
-struct User {
-  let id: Id
-  let email: String
-  let address: String
-  let subscriptionId: Subscription.Id?
-
-  typealias Id = Tagged<User, Int>
+public enum File {}
+extension File {
+    public struct Descriptor: ~Copyable { /* resource handle */ }
 }
 
-struct Subscription {
-  let id: Id
+typealias Index<Element: ~Copyable & ~Escapable> = Tagged<Element, Ordinal>
 
-  typealias Id = Tagged<Subscription, Int>
-}
+let fd:   Index<File.Descriptor> = 3
+let byte: Index<UInt8>           = 3
+// fd == byte           // Compile error: File.Descriptor tag ≠ UInt8 tag
 ```
 
-Tagged depends on a generic "tag" parameter to make each type unique. Here we've used the container type to uniquely tag each id.
+`Tag: ~Copyable & ~Escapable` on every extension means the index type works whether the element is `Copyable`, `~Copyable`, `Escapable`, or `~Escapable`.
 
-We can now update `fetchSubscription` to take a `Subscription.Id` where it previously took any `Int`.
+### Functor operations — `map` and `retag`
 
-``` swift
-func fetchSubscription(byId id: Subscription.Id) -> Subscription? {
-  return subscriptions.first(where: { $0.id == id })
+```swift
+import Tagged_Primitives
+
+let id: User.ID = 42
+
+let asString: Tagged<User, String> = id.map { String($0) }   // preserve Tag, transform RawValue
+let asOrder:  Order.ID             = id.retag()              // preserve RawValue, change Tag (explicit coercion)
+```
+
+`retag` is a phantom coercion — with `@inlinable`, the optimizer eliminates the call. It is a meaningful operation for domain-identity wrappers because crossing domains IS the intent. (Contrast: the sibling `Property<Tag, Base>` type in `swift-property-primitives` uses the tag as a *verb namespace* — retagging `Push` to `Pop` would be semantically nonsensical. The `Phantom Tag Semantics` DocC article in this package's catalog details the two-role taxonomy.)
+
+`Tagged.map` uses typed throws (`throws(E) where E: Error`); the error type is part of the signature, not erased to `any Error`:
+
+```swift
+struct ParseError: Error { let message: String }
+
+func parseUserID(_ raw: String) throws(ParseError) -> User.ID {
+    guard let n = UInt64(raw) else { throw ParseError(message: "not a number") }
+    return User.ID(__unchecked: (), n)
+}
+
+let id: Tagged<User, String> = "42"
+let parsed: User.ID = try id.map { raw throws(ParseError) in
+    guard let n = UInt64(raw) else { throw ParseError(message: "not a number") }
+    return n
 }
 ```
 
-And there's no chance we'll accidentally pass a user id where we expect a subscription id.
+Consumers who need a `Result`-shaped outcome wrap at the call site: `Result(catching: { try id.map(transform) })`.
 
-``` swift
-let subscription = fetchSubscription(byId: user.id)
-```
-
-> 🛑 Cannot convert value of type 'User.Id' (aka 'Tagged<User, Int>') to expected argument type 'Subscription.Id' (aka 'Tagged<Subscription, Int>')
-
-We've prevented a couple serious bugs at compile time!
-
-There's another bug lurking in these types. We've written a function with the following signature:
-
-``` swift
-sendWelcomeEmail(toAddress address: String)
-```
-
-It contains logic that sends an email to an email address. Unfortunately, it takes _any_ string as input.
-
-``` swift
-sendWelcomeEmail(toAddress: user.address)
-```
-
-This compiles and runs, but `user.address` refers to our user's _billing_ address, _not_ their email! None of our users are getting welcome emails! Worse yet, calling this function with invalid data may cause server churn and crashes.
-
-Tagged again can save the day.
-
-``` swift
-struct User {
-  let id: Id
-  let email: Email
-  let address: String
-  let subscriptionId: Subscription.Id?
-
-  typealias Id = Tagged<User, Int>
-  typealias Email = Tagged<User, String>
-}
-```
-
-We can now update `sendWelcomeEmail` and have another compile time guarantee.
-
-``` swift
-sendWelcomeEmail(toAddress address: Email)
-```
-
-``` swift
-sendWelcomeEmail(toAddress: user.address)
-```
-
-> 🛑 Cannot convert value of type 'String' to expected argument type 'Email' (aka 'Tagged<EmailTag, String>')
-
-### Handling Tag Collisions
-
-What if we want to tag two string values within the same type?
-
-``` swift
-struct User {
-  let id: Id
-  let email: Email
-  let address: Address
-  let subscriptionId: Subscription.Id?
-
-  typealias Id = Tagged<User, Int>
-  typealias Email = Tagged<User, String>
-  typealias Address = Tagged</* What goes here? */, String>
-}
-```
-
-We shouldn't reuse `Tagged<User, String>` because the compiler would treat `Email` and `Address` as the same type! We need a new tag, which means we need a new type. We can use any type, but an uninhabited enum is nestable and uninstantiable, which is perfect here.
-
-``` swift
-struct User {
-  let id: Id
-  let email: Email
-  let address: Address
-  let subscriptionId: Subscription.Id?
-
-  typealias Id = Tagged<User, Int>
-  enum EmailTag {}
-  typealias Email = Tagged<EmailTag, String>
-  enum AddressTag {}
-  typealias Address = Tagged<AddressTag, String>
-}
-```
-
-We've now distinguished `User.Email` and `User.Address` at the cost of an extra line per type, but things are documented very explicitly.
-
-If we want to save this extra line, we could instead take advantage of the fact that tuple labels are encoded in the type system and can be used to differentiate two seemingly equivalent tuple types.
-
-``` swift
-struct User {
-  let id: Id
-  let email: Email
-  let address: Address
-  let subscriptionId: Subscription.Id?
-
-  typealias Id = Tagged<User, Int>
-  typealias Email = Tagged<(User, email: ()), String>
-  typealias Address = Tagged<(User, address: ()), String>
-}
-```
-
-This may look a bit strange with the dangling `()`, but it's otherwise nice and succinct, and the type safety we get is more than worth it.
-
-### Accessing Raw Values
-
-Tagged uses the same interface as `RawRepresentable` to expose its raw values, _via_ a `rawValue` property:
-
-``` swift
-user.id.rawValue // Int
-```
-
-You can also manually instantiate tagged types using `init(rawValue:)`, though you can often avoid this using the [`Decodable`](#codable) and [`ExpressibleBy`-`Literal`](#expressibleby-literal) family of protocols.
-
-## Features
-
-Tagged uses [conditional conformance](https://github.com/apple/swift-evolution/blob/master/proposals/0143-conditional-conformances.md), so you don't have to sacrifice expressiveness for safety. If the raw values are encodable or decodable, equatable, hashable, comparable, or expressible by literals, the tagged values follow suit. This means we can often avoid unnecessary (and potentially dangerous) [wrapping and unwrapping](#accessing-raw-values).
-
-### Equatable
-
-A tagged type is automatically equatable if its raw value is equatable. We took advantage of this in [our example](#the-problem), above.
-
-``` swift
-subscriptions.first(where: { $0.id == user.subscriptionId })
-```
-
-### Hashable
-
-We can use underlying hashability to create a set or lookup dictionary.
-
-``` swift
-var userIds: Set<User.Id> = []
-var users: [User.Id: User] = [:]
-```
-
-### Comparable
-
-We can sort directly on a comparable tagged type.
-
-``` swift
-userIds.sorted(by: <)
-users.values.sorted(by: { $0.email < $1.email })
-```
-
-### Codable
-
-Tagged types are as encodable and decodable as the types they wrap.
-
-``` swift
-struct User: Decodable {
-  let id: Id
-  let email: Email
-  let address: Address
-  let subscriptionId: Subscription.Id?
-
-  typealias Id = Tagged<User, Int>
-  typealias Email = Tagged<(User, email: ()), String>
-  typealias Address = Tagged<(User, address: ()), String>
-}
-
-JSONDecoder().decode(User.self, from: Data("""
-{
-  "id": 1,
-  "email": "blob@pointfree.co",
-  "address": "1 Blob Ln",
-  "subscriptionId": null
-}
-""".utf8))
-```
-
-### ExpressiblyBy-Literal
-
-Tagged types inherit literal expressibility. This is helpful for working with constants, like instantiating test data.
-
-``` swift
-User(
-  id: 1,
-  email: "blob@pointfree.co",
-  address: "1 Blob Ln",
-  subscriptionId: 1
-)
-
-// vs.
-
-User(
-  id: User.Id(rawValue: 1),
-  email: User.Email(rawValue: "blob@pointfree.co"),
-  address: User.Address(rawValue: "1 Blob Ln"),
-  subscriptionId: Subscription.Id(rawValue: 1)
-)
-```
-
-### Numeric
-
-Numeric tagged types get mathematical operations for free!
-
-``` swift
-struct Product {
-  let amount: Cents
-
-  typealias Cents = Tagged<Product, Int>
-}
-```
-``` swift
-let totalCents = products.reduce(0) { $0 + $1.amount }
-```
-
-## Nanolibraries
-
-The `Tagged` library also comes with a few nanolibraries for handling common types in a type safe way.
-
-### `TaggedTime`
-
-The API's we interact with often return timestamps in seconds or milliseconds measured from an epoch time. Keeping track of the units can be messy, either being done via documentation or by naming fields in a particular way, e.g. `publishedAtMs`. Mixing up the units on accident can lead to wildly inaccurate logic.
-
- By importing `TaggedTime` you will get access to two generic types, `Milliseconds<A>` and `Seconds<A>`, that allow the compiler to sort out the differences for you. You can use them in your models:
-
-```swift 
-struct BlogPost: Decodable {
-  typealias Id = Tagged<BlogPost, Int>
-
-  let id: Id
-  let publishedAt: Seconds<Int>
-  let title: String
-}
-```
-
-Now you have documentation of the unit in the type automatically, and you can never accidentally compare seconds to milliseconds:
-
-```swift 
-let futureTime: Milliseconds<Int> = 1528378451000
-
-breakingBlogPost.publishedAt < futureTime
-// 🛑 Binary operator '<' cannot be applied to operands of type
-// 'Tagged<SecondsTag, Double>' and 'Tagged<MillisecondsTag, Double>'
-
-breakingBlogPost.publishedAt.milliseconds < futureTime
-// ✅ true
-```
-
-Read more on our blog post: [Tagged Seconds and Milliseconds](https://www.pointfree.co/blog/posts/6-tagged-seconds-and-milliseconds).
-
-### `TaggedMoney`
-
-API's can also send back money amounts in two standard units: whole dollar amounts or cents (1/100 of a dollar). Keeping track of this distinction can also be messy and error prone. 
-
-Importing the `TaggedMoney` library gives you access to two generic types, `Dollars<A>` and `Cents<A>`, that give you compile-time guarantees in keeping the two units separate.
-
-```swift 
-struct Prize {
-  let amount: Dollars<Int> 
-  let name: String
-}
-
-let moneyRaised: Cents<Int> = 50_000
-
-theBigPrize.amount < moneyRaised
-// 🛑 Binary operator '<' cannot be applied to operands of type
-// 'Tagged<DollarsTag, Int>' and 'Tagged<CentsTag, Int>'
-
-theBigPrize.amount.cents < moneyRaised
-// ✅ true
-```
-
-It is important to note that these types do not encapsulate _currency_, but rather just the abstract notion of the whole and fractional unit of money. You will still need to track particular currencies, like USD, EUR, MXN, alongside these values.
-
-## FAQ
-
-  - **Why not use a type alias?**
-
-    Type aliases are just that: aliases. A type alias can be used interchangeably with the original type and offers no additional safety or guarantees.
-
-  - **Why not use `RawRepresentable`, or some other protocol?**
-
-    Protocols like `RawRepresentable` are useful, but they can't be extended conditionally, so you miss out on all of Tagged's free [features](#features). Using a protocol means you need to manually opt each type into synthesizing `Equatable`, `Hashable`, `Decodable` and `Encodable`, and to achieve the same level of expressiveness as Tagged, you need to manually conform to other protocols, like `Comparable`, the `ExpressibleBy`-`Literal` family of protocols, and `Numeric`. That's a _lot_ of boilerplate you need to write or generate, but Tagged gives it to you for free!
+---
 
 ## Installation
 
-You can add Tagged to an Xcode project by adding it as a package dependency.
-
-> https://github.com/pointfreeco/swift-tagged
-
-If you want to use Tagged in a [SwiftPM](https://swift.org/package-manager/) project, it's as simple as adding it to a `dependencies` clause in your `Package.swift`:
-
-``` swift
+```swift
 dependencies: [
-  .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.6.0")
+    .package(url: "https://github.com/swift-primitives/swift-tagged-primitives.git", from: "0.1.0")
 ]
 ```
 
-## Interested in learning more?
+```swift
+.target(
+    name: "App",
+    dependencies: [
+        .product(name: "Tagged Primitives", package: "swift-tagged-primitives"),
+        // Optional — opt into stdlib protocol conformances:
+        // .product(name: "Tagged Primitives Standard Library Integration", package: "swift-tagged-primitives"),
+    ]
+)
+```
 
-These concepts (and more) are explored thoroughly in [Point-Free](https://www.pointfree.co), a video series exploring functional programming and Swift hosted by [Brandon Williams](https://twitter.com/mbrandonw) and [Stephen Celis](https://twitter.com/stephencelis).
+Requires Swift 6.3.1 and macOS 26 / iOS 26 / tvOS 26 / watchOS 26 / visionOS 26 (or the matching Linux / Windows toolchain).
 
-Tagged was first explored in [Episode #12](https://www.pointfree.co/episodes/ep12-tagged):
+> **Pre-tag note**: this package's `Package.swift` currently pins its single dependency `swift-carrier-primitives` to `branch: "main"` as a publication-ready interim. The dependency will graduate to `from: "0.1.0"` once `swift-carrier-primitives` cuts its 0.1.0 tag (the two packages are part of the same release cohort). Consumers using the snippet above will resolve cleanly once both tags are in place.
 
-<a href="https://www.pointfree.co/episodes/ep12-tagged">
-  <img alt="video poster image" src="https://d3rccdn33rt8ze.cloudfront.net/episodes/0012.jpeg" width="480">
-</a>
+---
+
+## Architecture
+
+Three library products: `Tagged Primitives` (the umbrella), `Tagged Primitives Standard Library Integration` (opt-in stdlib conformances), and `Tagged Primitives Test Support` (test-only fixtures, re-exports SLI for ergonomic test code).
+
+### Main target (`Tagged Primitives`)
+
+| File | Purpose |
+|------|---------|
+| `Tagged.swift` | The `Tagged<Tag: ~Copyable & ~Escapable, RawValue: ~Copyable & ~Escapable>` struct, functor operations (`map`, `retag`), and conditional conformances (`Sendable`, `Equatable`, `Hashable`, `Comparable`, `Codable`, `BitwiseCopyable`). |
+| `Tagged+CustomStringConvertible.swift` | `CustomStringConvertible` forwarded to the raw value. |
+| `Tagged+Carrier.swift` | `Carrier` cascading conformance — `Tagged.Underlying` resolves through `RawValue.Underlying`, lifting every Tagged-aliased ecosystem type into the `Carrier` family. The phantom `Tag` becomes the `Carrier` `Domain` discriminator. |
+
+### Standard Library Integration target (`Tagged Primitives Standard Library Integration`)
+
+Opt-in via `import Tagged_Primitives_Standard_Library_Integration` (which re-exports `Tagged_Primitives` so consumers don't double-import).
+
+| File | Conformance |
+|------|-------------|
+| `Tagged+Literals.swift` | The 7 stdlib literal protocols (`ExpressibleByIntegerLiteral`, `ExpressibleByFloatLiteral`, `ExpressibleByBooleanLiteral`, `ExpressibleByStringLiteral`, `ExpressibleByUnicodeScalarLiteral`, `ExpressibleByExtendedGraphemeClusterLiteral`, `ExpressibleByStringInterpolation`) — bundled because they share `@_disfavoredOverload` discipline as a cohesive opt-in family — **plus** `ExpressibleByArrayLiteral` and `ExpressibleByDictionaryLiteral` via a documented `unsafeBitCast` carve-out at lines 121 and 133. The carve-out is the first and only `[MEM-SAFE-001]` exception in the package; bounded scope (function-type reinterpretation between variadic and array forms only); marked with the `unsafe` expression keyword. Provenance: the file's MARK block at lines 84-115 + [`Research/principled-absence-array-dict-literal.md`](./Research/principled-absence-array-dict-literal.md) v1.2.0. |
+| `Tagged+Identifiable.swift` | `Identifiable` (forwards `id` to `rawValue.id`; carries the documented identity-inversion trade-off). |
+| `Tagged+LosslessStringConvertible.swift` | `LosslessStringConvertible` (`init?(_:)` parses, `description` from main's `CustomStringConvertible`; lossy-from-Tagged-perspective trade-off documented). |
+| `Tagged+Sequence.swift` | `Sequence` (forwards `makeIterator`; wrapper-vs-content conflation trade-off documented). |
+| `Tagged+Collection.swift` | `Collection` (forwards `startIndex` / `endIndex` / `subscript` / `index(after:)`). |
+
+### Excluded from SLI
+
+The conformances absent from SLI fall into three categories. **Structural Swift-level blockers**: `RawRepresentable` (not authorable on Swift 6.3.1 due to `~Escapable` non-awareness) and `@dynamicMemberLookup` (a type-declaration attribute, not retroactive on extensions). **Foundation axiom**: `LocalizedError` and `UUID` convenience inits would require importing Foundation (forbidden in primitives per `[PRIM-FOUND-001]`). **Policy trade-off**: `AdditiveArithmetic` / `Numeric` family (operator-forwarding footgun on cross-domain arithmetic — the very property the fork's "operator non-forwarding is a feature" stance protects against), `Strideable` (SLI-excluded to keep the literal-conformance footgun dormant for SLI-only consumers; documented in [`Research/sli-literal-vs-strideable-tradeoff.md`](./Research/sli-literal-vs-strideable-tradeoff.md)), and the niche / already-covered protocols `CustomPlaygroundDisplayConvertible` / `CodingKeyRepresentable` / Decodable's double-try fallback. Each absence has a research doc + paired experiment under `Research/principled-absence-*.md` and `Experiments/tagged-no-*/` (10 + 10), classifying it as HARD blocker, SOFT-shipped-in-SLI, or SOFT-excluded-by-policy with empirical evidence.
+
+### Dependencies
+
+The single direct dependency, `swift-carrier-primitives`, provides the `Carrier` capability protocol that `Tagged: Carrier` cascades through. Other ecosystem-specific conformances on `Tagged` (`Ordinal.Protocol`, `Ownership.Borrow.Protocol`, etc.) live in the respective protocol / capability packages that import `swift-tagged-primitives`.
+
+### Versioning and stability
+
+The 0.1.x line commits to the conformance set documented above: main ships the unconditional + conditional conformances on `Tagged`, SLI ships exactly the 5 forwarding conformances + 9 literal conformances enumerated, and Test Support re-exports both. **Additive changes** within 0.1.x — new conformances on `Tagged` shipped in main or SLI — are non-breaking and may land in patch releases; the per-protocol absence catalog is the inventory of candidates. **Removals or scope reductions** require a minor-version bump (0.2.0+). The `unsafeBitCast` carve-out's scope is bounded to its current two sites; widening the carve-out to a third site requires a minor-version bump and a new entry in the per-protocol absence catalog. The fork-as-heritage shape is structural and permanent; `[HERITAGE-004]` forbids upstream merges, so upstream's release cadence does not affect this package's SemVer trajectory.
+
+---
+
+## Platform Support
+
+| Platform | Status |
+|----------|--------|
+| macOS 26 | Full support |
+| Linux | Full support |
+| Windows | Full support |
+| iOS / tvOS / watchOS / visionOS | Supported |
+| Swift Embedded | Supported |
+
+---
+
+## Related Packages
+
+**Used By**:
+
+- [swift-ordinal-primitives](https://github.com/swift-primitives/swift-ordinal-primitives) — `Ordinal` + `Tagged<T, Ordinal>` give typed positions (`Index<Element>`, `Memory.Address`, `Bit.Index`). Also extends `Tagged` with `Ordinal.Protocol` conformance when `RawValue == Ordinal`.
+- [swift-cardinal-primitives](https://github.com/swift-primitives/swift-cardinal-primitives) — `Cardinal` + `Tagged<T, Cardinal>` give typed quantities (`Index<T>.Count`, `Memory.Address.Count`).
+- [swift-affine-primitives](https://github.com/swift-primitives/swift-affine-primitives) — `Affine.Discrete.Vector` + `Tagged<T, Affine.Discrete.Vector>` give typed displacements (`Index<T>.Offset`).
+- [swift-ownership-primitives](https://github.com/swift-primitives/swift-ownership-primitives) — ships the `Tagged: Ownership.Borrow.Protocol` conformance in its `Ownership Borrow Primitives` target, so `Tagged<Tag, X>.Borrowed` resolves to `X.Borrowed` whenever `X` is borrow-capable.
+- [swift-property-primitives](https://github.com/swift-primitives/swift-property-primitives) — `Property.View` stores `Tagged<Tag, Ownership.Inout<Base>>` as the canonical fluent-accessor shape.
+- [swift-hash-primitives](https://github.com/swift-primitives/swift-hash-primitives), [swift-binary-primitives](https://github.com/swift-primitives/swift-binary-primitives), and every other primitives package that reaches for phantom-typed discrimination.
+
+**Dependencies**:
+
+- `swift-carrier-primitives` — the `Carrier` capability protocol that `Tagged: Carrier` cascades through (declared in `Package.swift`).
+
+---
 
 ## License
 
-All modules are released under the MIT license. See [LICENSE](LICENSE) for details.
+Apache 2.0 (Institute) with MIT attribution to the upstream `pointfreeco/swift-tagged` (Copyright (c) 2019 Point-Free, Inc.). The combined-license text — Institute Apache 2.0 + the upstream's preserved MIT block — is in [LICENSE.md](LICENSE.md). This dual-license shape is required by `[HERITAGE-003]` for fork-as-heritage packages: derivative works under MIT must preserve the original copyright notice, and the Institute's Apache 2.0 governs new contributions on top of the fork point.

@@ -1,70 +1,75 @@
-# Xcode
-#
-# gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
+# ========== CANONICAL (auto-synced, do not edit) ==========
+# Source: swift-institute/Scripts/sync-gitignore.sh
 
-## Build generated
-build/
+*~
+.DS_Store
+
+Package.resolved
 DerivedData/
+Thumbs.db
 
-## Various settings
-*.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
-xcuserdata/
+# Top-level entries (opt-in only)
+# First ignore everything at root; then whitelist specific folders,
+# files, and dotfiles. Whitelists come AFTER /* so they take effect.
+/*
+!/Sources/
+!/Tests/
+!/Benchmarks/
+!/Experiments/
+!/Research/
+!/Skills/
+!/.github/
+!/Package.swift
+!/LICENSE
+!/LICENSE.md
+!/README.md
+!/.gitignore
+!/.spi.yml
+!/.swift-format
+!/.swiftformat
+!/.swiftlint.yml
+!/.swiftlint/
 
-## Other
-*.moved-aside
-*.xccheckout
-*.xcscmblueprint
+# Documentation (opt-in for whitelisted .md files and .docc catalogs only)
+# Blocks all .md files by default to prevent AI-generated content from being committed
+*.md
+!README.md
+!LICENSE
+!LICENSE.md
+!CHANGELOG.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+!SECURITY.md
+!CLAUDE.md
+!**/*.docc/**/*.md
+!**/Research/**/*.md
+!**/Experiments/**/*.md
+!**/Skills/**/*.md
+!**/.github/**/*.md
 
-## Obj-C/Swift specific
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
+# Package insights are non-normative working logs accumulating through
+# reflections-processing. They stay on disk for the author but do not ship.
+**/_Package-Insights.md
 
-## Playgrounds
-timeline.xctimeline
-playground.xcworkspace
+# Research working-artifact prevention: underscore-prefixed and prompt dirs
+# are non-canonical and must not ship. _archived/ is the one allowed
+# exception (holds SUPERSEDED research per [META-005]).
+/Research/_*/
+!/Research/_archived/
+/Research/prompts/
+
+*.pdf
+
+# SwiftLint
+**/.swiftlint/RemoteConfigCache
 
 # Swift Package Manager
-#
-# Add this line if you want to avoid checking in source code from Swift Package Manager dependencies.
-Packages/
-Package.pins
 .build/
-.derivedData/
+.swiftpm/
+.benchmarks/
 
-# CocoaPods
-#
-# We recommend against adding the Pods directory to your .gitignore. However
-# you should judge for yourself, the pros and cons are mentioned at:
-# https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
-#
-# Pods/
+# ========== END CANONICAL ==========
 
-# Carthage
-#
-# Add this line if you want to avoid checking in source code from Carthage dependencies.
-# Carthage/Checkouts
+# ========== LOCAL OVERRIDES ==========
+# Package-specific rules below (managed by sync-gitignore.sh)
 
-Carthage/Build
-
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
-# screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/#source-control
-
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots
-fastlane/test_output
-
-.DS_Store

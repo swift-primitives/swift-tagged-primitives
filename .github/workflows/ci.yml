@@ -6,30 +6,33 @@ on:
       - main
   pull_request:
     branches:
-      - '*'
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-    name: macOS
-    runs-on: macos-14
-    steps:
-    - uses: actions/checkout@v4
-    - name: Select Xcode
-      run: sudo xcode-select -s /Applications/Xcode_15.4.app
-    - name: Run tests
-      run: swift test
+  # Build + test matrix — see swift-institute/.github/.github/workflows/swift-ci.yml
+  ci:
+    uses: swift-institute/.github/.github/workflows/swift-ci.yml@v1
+    with:
+      cache-key-prefix: swift63-spm-v1
+      enable-private-repos: true
+    secrets:
+      PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
-  linux:
-    strategy:
-      matrix:
-        swift:
-          - '5.10'
-    name: Linux (Swift ${{ matrix.swift }})
-    runs-on: ubuntu-latest
-    container: swift:${{ matrix.swift }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run tests
-        run: swift test --parallel
-      - name: Run tests (release)
-        run: swift test -c release --parallel
+  # DocC umbrella-catalog pipeline per [DOC-019a] — see
+  # swift-institute/.github/.github/workflows/swift-docs.yml
+  docs:
+    uses: swift-institute/.github/.github/workflows/swift-docs.yml@v1
+    with:
+      umbrella-module: Tagged_Primitives
+      umbrella-display-name: "Tagged Primitives"
+      umbrella-bundle-id: "swift-tagged-primitives.Tagged-Primitives"
+      umbrella-docc-path: "Sources/Tagged Primitives/Tagged Primitives.docc"
+      exclude-modules: "Tagged_Primitives_Test_Support"
+      enable-private-repos: true
+    secrets:
+      PRIVATE_REPO_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}

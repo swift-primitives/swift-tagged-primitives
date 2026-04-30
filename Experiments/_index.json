@@ -1,0 +1,286 @@
+{
+  "$schema": "https://swift-institute.org/schemas/experiments-index-v1.json",
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-04-30",
+  "title": "Experiments Index",
+  "blurb": "",
+  "scope": "swift-tagged-primitives (swift-primitives)",
+  "experiments": [
+    {
+      "directory": "tagged-no-niche-protocols",
+      "displayName": "tagged-no-niche-protocols",
+      "purpose": "Empirical verification of three niche/edge-case absence rationales. (A) CustomStringConvertible covers the playground-display use case (String(describing:) and tagged.description both produce '42'). (B) Codable conditional handles Tagged-as-value via Swift's default synthesis \u2014 empirically discovered to produce a KEYED container ({\"rawValue\": N}), symmetric encode/decode, round-trip works. (C) Decode failure on malformed JSON produces a single informative DecodingError (typeMismatch / dataCorrupted / keyNotFound) \u2014 no double-try fallback means no error masking.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "All three niche absences classified HARD. Surfaced an empirical detail: Swift's synthesized Codable on a struct with one stored property produces a keyed container, not single-value \u2014 recorded in research doc. Round-trip is symmetric.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-niche-protocols.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-foundation-protocols",
+      "displayName": "tagged-no-foundation-protocols",
+      "purpose": "Empirical verification of the Foundation-independence axiom for Tagged Primitives + consumer-side opt-in pattern for LocalizedError and UUID convenience inits. (a) Foundation-free proof: experiment imports Tagged_Primitives WITHOUT import Foundation, builds and runs cleanly \u2014 confirms [PRIM-FOUND-001] axiom. (b) Demonstrates that LocalizedError and UUID conformances would require Foundation, which is forbidden at the primitives layer. (c) Consumer-side pattern documented: in a Foundation-importing consumer's package, the conformance is one-line and lives at the consumer's layer.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Foundation-dependent conformances classified HARD-BY-AXIOM. [PRIM-FOUND-001] structurally forbids Foundation in primitives; SLI inherits the axiom. Consumer-side opt-in is the canonical pattern.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-foundation-protocols.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-array-dict-literal",
+      "displayName": "tagged-no-array-dict-literal",
+      "purpose": "Empirical verification of ExpressibleByArrayLiteral / ExpressibleByDictionaryLiteral safe-Swift authorability + per-domain alternative. (a) Safe-Swift array-literal conformance compiles for per-element-type specialization (RawValue == [Int]) \u2014 no unsafeBitCast needed. (b) General parametric conformance (RawValue: ExpressibleByArrayLiteral) would require unsafeBitCast as pointfree does. (c) Per-domain wrapper structs (UserGroup, LookupTable) handle literal construction cleanly via variadic-to-Array/Dict conversion at the wrapper level \u2014 no bitcast needed.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Array/Dict literal classified HARD-BY-POLICY. SLI excluded due to strict-memory-safety stance + per-element specialization narrowness. Per-domain wrapper is the canonical alternative.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-array-dict-literal.md",
+        "Research/tagged-literal-conformances-fresh-perspective.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-dynamicmemberlookup",
+      "displayName": "tagged-no-dynamicmemberlookup",
+      "purpose": "Empirical verification that @dynamicMemberLookup cannot be retroactively added to Tagged + demonstrates explicit-unwrap and consumer-wrapper alternatives. (a) Absence proof: tagged.name does not compile (Tagged has no such member). (b) Retroactive-attribute test (reject-test-no-passthrough.swift.txt): @dynamicMemberLookup on extension fails \u2014 must be on type declaration. (c) Explicit unwrap pattern: tagged.rawValue.name marks every type-boundary crossing. (d) Consumer wrapper pattern: UserWrapper has own @dynamicMemberLookup forwarding to Tagged-stored UserRecord \u2014 provides passthrough ergonomics for domains that explicitly want it.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Classified HARD absence. @dynamicMemberLookup not retroactively applicable; SLI cannot opt in. Recommended pattern is explicit .rawValue access or consumer-side @dynamicMemberLookup wrapper.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-dynamicmemberlookup.md",
+        "Research/principled-absence-sequence-collection.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-additivearithmetic-family",
+      "displayName": "tagged-no-additivearithmetic-family",
+      "purpose": "Empirical verification of Tagged: AdditiveArithmetic authorability + the domain-blind arithmetic footgun + per-domain alternative. (a) Option B (SLI-style opt-in) compiles on Swift 6.3.1 \u2014 function-style witnesses (static func +/-, static var zero) bypass ~Escapable blocker. (b) Domain-blind footgun demonstrated: UserID + UserID compiles even though adding user IDs is semantically meaningless; processUsers(start:count:) returns a UserID with no domain meaning. (c) Compounding with literals: userA + literal(5) compiles, reducing to Int arithmetic on what was supposed to be a phantom-typed wrapper. (d) Per-domain Counter: domains with meaningful arithmetic author the conformance directly; the operation IS the semantic.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Family classified SOFT structurally / HARD semantically. Recommendation against SLI inclusion despite structural authorability \u2014 package-level granularity too coarse for the operator-forwarding footgun. Per-domain conformance (Cardinal, Counter, etc.) is the correct alternative.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-additivearithmetic-family.md",
+        "Research/tagged-literal-conformances-fresh-perspective.md",
+        "Research/_Package-Insights.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-sequence-collection",
+      "displayName": "tagged-no-sequence-collection",
+      "purpose": "Empirical verification of Tagged: Sequence and Tagged: Collection authorability, wrapper-vs-content conflation cost, and explicit-unwrap alternative. (a) Both Option B opt-in conformances compile on Swift 6.3.1 \u2014 function-style witnesses bypass ~Escapable blocker. (b) Generic algorithm (sumElements over T: Sequence) treats Tagged<Tag, [Int]> identically to [Int] \u2014 phantom Tag invisible to the algorithm. (c) Explicit .rawValue unwrap preserves wrapper-boundary visibility at every iteration / first / count call site.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Sequence and Collection both classified SOFT. Confirms function-style witnesses authorable; wrapper-vs-content conflation real but consumer-accepted on opt-in. Default-safe pattern is .rawValue.first / .rawValue.forEach / etc. \u2014 preserved at the main-target level by absence.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-sequence-collection.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-losslessstringconvertible",
+      "displayName": "tagged-no-losslessstringconvertible",
+      "purpose": "Empirical verification of Tagged: LosslessStringConvertible authorability + per-domain alternative. (a) Option B (SLI-style opt-in) compiles on Swift 6.3.1 \u2014 init?(_:) is function-style; description witness is satisfied by the existing CustomStringConvertible conformance. (b) Within-domain roundtrip works: UserTag.ID(\"99\") parses correctly. (c) Lossy-from-Tagged-perspective demonstrated: string '99' parses as both UserTag.ID(99) and OrderTag.ID(99); receiver type determines the Tag. (d) Per-domain wrapper UserIDWrapper preserves within-domain lossless guarantee.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "LosslessStringConvertible classified SOFT. Confirms function-style init? + computed-forward description witness combination is authorable; per-domain wrapper alternative also works.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-losslessstringconvertible.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-identifiable",
+      "displayName": "tagged-no-identifiable",
+      "purpose": "Empirical verification of Tagged: Identifiable authorability + per-domain alternative. (a) Option B (SLI-style opt-in) compiles on Swift 6.3.1 \u2014 Identifiable's getter is computed-forward (var id: ID { rawValue.id }), not direct stored-property access; bypasses the ~Escapable blocker. (b) Identity-inversion cost demonstrated: UserTag.ID and OrderTag.ID with the same DomainKey are observed as id=42 by Identifiable consumers \u2014 phantom Tag is invisible to the protocol layer. (c) Per-domain alternative (Option C) demonstrated: User: Identifiable with id: UserTag.ID preserves phantom-typed identity; User.ID and Order.ID are distinct types at the protocol layer.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Identifiable classified SOFT absence. Confirms computed-forward witnesses authorable (similar bypass mechanism as CustomStringConvertible's description witness). Per-domain pattern (Tagged as Identifiable.ID, not Tagged: Identifiable) is the recommended alternative.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-identifiable.md",
+        "Research/principled-absence-rawrepresentable.md",
+        "Research/principled-absence-strideable.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-strideable",
+      "displayName": "tagged-no-strideable",
+      "purpose": "Empirical verification of Tagged: Strideable authorability + per-domain alternative. (a) Option B (SLI opt-in) compiles on Swift 6.3.1 \u2014 function-style requirements (distance(to:), advanced(by:)) bypass the structural ~Escapable blocker. (b) Same-domain range iteration via the opt-in conformance works as expected ([1,2,3,4,5] for userA...userB). (c) Cross-domain ranges rejected by phantom Tag (compile error). (d) Per-domain alternative demonstrated via SparseUserID where stride increments by valid-ID-position (not raw-Int diff), illustrating domain-correct stride semantics independent of the SLI path.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Strideable classified SOFT absence (SLI-eligible). Confirms function-style witnesses authorable; per-domain alternative also authorable. Caveat: SLI Strideable reactivates the literal-conformance footgun.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-strideable.md",
+        "Research/tagged-literal-conformances-fresh-perspective.md"
+      ]
+    },
+    {
+      "directory": "tagged-no-rawrepresentable",
+      "displayName": "tagged-no-rawrepresentable",
+      "purpose": "Empirical verification of the principled absence of Tagged: RawRepresentable. (a) Reject test demonstrates three constraint shapes all fail with 'the get accessor cannot return a ~Escapable result' (captured in reject-test-conformance.swift.txt). (b) Acceptance test demonstrates the consumer alternative \u2014 a domain-specific wrapper struct (UserID) that owns its own RawRepresentable conformance, performs meaningful failable-init validation (non-negative IDs), forwards storage to Tagged, and works with stdlib RawRepresentable-constrained APIs.",
+      "date": "2026-04-30",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Confirms the absence is STRUCTURAL (not preference): RawRepresentable is not ~Escapable-aware, so Tagged's structural ~Escapable declaration propagates through synthesized rawValue getter witness regardless of constraint shape. Reclassified RawRepresentable from SOFT to HARD absence; consumer wrapper is the canonical alternative.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "Research/principled-absence-rawrepresentable.md"
+      ]
+    },
+    {
+      "directory": "tagged-noncopyable-rawvalue",
+      "displayName": "tagged-noncopyable-rawvalue",
+      "purpose": "Verify Tagged can support ~Copyable RawValue",
+      "date": "2026-01-24",
+      "toolchain": "Swift 6.2",
+      "status": "CONFIRMED",
+      "statusDetail": null,
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": []
+    },
+    {
+      "directory": "tagged-zero-cost-codegen",
+      "displayName": "tagged-zero-cost-codegen",
+      "purpose": "Verify Tagged produces identical codegen to raw values at -O",
+      "date": "2026-02-26",
+      "toolchain": "Swift 6.2",
+      "status": "CONFIRMED",
+      "statusDetail": null,
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": []
+    },
+    {
+      "directory": "tagged-literal-negative-ordinal",
+      "displayName": "tagged-literal-negative-ordinal",
+      "purpose": "Verify UInt-backed Tagged types reject negative literals at compile time",
+      "date": "2026-02-09",
+      "toolchain": "Swift 6.2",
+      "status": "CONFIRMED",
+      "statusDetail": null,
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": []
+    },
+    {
+      "directory": "tagged-viewable-char-crossmodule",
+      "displayName": "tagged-viewable-char-crossmodule",
+      "purpose": "Verify two constrained extensions on Tagged can each provide typealias Char",
+      "date": "2026-02-28",
+      "toolchain": "Swift 6.2",
+      "status": "SUPERSEDED",
+      "statusDetail": "Result (REFUTED) remains historically accurate, but the Viewable protocol the experiment targets was deleted in commit 9ac9b04 (2026-04-23) when Tagged migrated to Ownership.Borrow.`Protocol`. No current code path depends on this finding.",
+      "statusRaw": "REFUTED",
+      "supersededBy": "tagged-primitives/9ac9b04 \u2014 Viewable deleted; Tagged conforms to Ownership.Borrow.`Protocol` instead",
+      "crossRefs": []
+    },
+    {
+      "directory": "tagged-view-protocol",
+      "displayName": "tagged-view-protocol",
+      "purpose": "Viewable protocol with ~Copyable ~Escapable associated type for Tagged.View typealias",
+      "date": "2026-02-28",
+      "toolchain": "Swift 6.2",
+      "status": "SUPERSEDED",
+      "statusDetail": "Result (CONFIRMED) remains historically accurate, but the Viewable protocol the experiment prototypes was deleted in commit 9ac9b04 (2026-04-23) when Tagged migrated to Ownership.Borrow.`Protocol`. No current code path depends on this finding.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": "tagged-primitives/9ac9b04 \u2014 Viewable deleted; Tagged conforms to Ownership.Borrow.`Protocol` instead",
+      "crossRefs": []
+    },
+    {
+      "directory": "tagged-view-struct",
+      "displayName": "tagged-view-struct",
+      "purpose": "Single nested Tagged.View struct with ~Copyable, ~Escapable; stored properties cannot be conditional per RawValue",
+      "date": "2026-02-28",
+      "toolchain": "Swift 6.2",
+      "status": "SUPERSEDED",
+      "statusDetail": "Result (CONFIRMED) remains historically accurate, but Tagged no longer ships a nested View struct. Commit 9ac9b04 (2026-04-23) migrated to Ownership.Borrow.`Protocol` with Borrowed associated type resolution. No current code path depends on this finding.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": "tagged-primitives/9ac9b04 \u2014 Viewable deleted; Tagged conforms to Ownership.Borrow.`Protocol` instead",
+      "crossRefs": []
+    },
+    {
+      "directory": "tagged-literal-footgun-6-3-revalidation",
+      "displayName": "tagged-literal-footgun-6-3-revalidation",
+      "purpose": "Revalidate the Bit.Index byte-to-bit overload resolution footgun on Swift 6.3.1; determine whether Strideable absence (current) vs presence (future) changes the outcome",
+      "date": "2026-04-21",
+      "toolchain": "Swift 6.3.1",
+      "status": "PARTIAL",
+      "statusDetail": "Footgun STRUCTURALLY DORMANT without Strideable on Tagged; ACTIVE with Strideable. Current production safety is accidental, not principled. Also includes sub-package production-reality-check/ that confirms the dormant state against real Bit.Index + test support.",
+      "statusRaw": "PARTIAL",
+      "supersededBy": null,
+      "crossRefs": [
+        "tagged-literal-safe-marker",
+        "tagged-literal-consumer-opt-in"
+      ]
+    },
+    {
+      "directory": "tagged-literal-safe-marker",
+      "displayName": "tagged-literal-safe-marker",
+      "purpose": "Gate Tagged's ExpressibleByIntegerLiteral/FloatLiteral on a RawValue marker protocol (TaggedLiteralSafe) \u2014 opt-in for Int/UInt32/Double etc., opt-out for Ordinal/Cardinal \u2014 and verify footgun prevention even with Strideable",
+      "date": "2026-04-21",
+      "toolchain": "Swift 6.3.1",
+      "status": "CONFIRMED",
+      "statusDetail": "Main mechanism CONFIRMED (marker gating prevents footgun). Per-tag opt-in (adding ExpressibleByIntegerLiteral for a specific Tag == X, RawValue == Y combination alongside the gated blanket) is REFUTED \u2014 Swift rejects as 'conflicting conformance ... there cannot be more than one conformance, even with different conditional bounds'.",
+      "statusRaw": "CONFIRMED",
+      "supersededBy": null,
+      "crossRefs": [
+        "tagged-literal-footgun-6-3-revalidation",
+        "tagged-literal-consumer-opt-in"
+      ]
+    },
+    {
+      "directory": "tagged-literal-consumer-opt-in",
+      "displayName": "tagged-literal-consumer-opt-in",
+      "purpose": "Test whether consumer packages can each independently add ExpressibleByIntegerLiteral conformance to Tagged for their specific Tag/RawValue combinations without cross-module conflict",
+      "date": "2026-04-21",
+      "toolchain": "Swift 6.3.1",
+      "status": "REFUTED",
+      "statusDetail": "Single consumer works; two consumers with disjoint constraints fail at the client site with 'type alias X requires the types A and B be equivalent'. Swift's one-conformance-per-(type, protocol) rule applies across module boundaries. Exactly one package in the whole build graph can own Tagged's literal conformance.",
+      "statusRaw": "REFUTED",
+      "supersededBy": null,
+      "crossRefs": [
+        "tagged-literal-safe-marker",
+        "tagged-literal-footgun-6-3-revalidation"
+      ]
+    },
+    {
+      "directory": "tagged-modify-escapable-revalidation",
+      "displayName": "tagged-modify-escapable-revalidation",
+      "purpose": "Revalidate the 'Swift 6.3 closure-parameter-lifetime gap for ~Escapable types' claim documented in Tagged.swift. Hypothesis: `package mutating func modify(_:)` with inout ~Escapable RawValue closure parameter cannot compile on Swift 6.3.",
+      "date": "2026-04-24",
+      "toolchain": "Swift 6.3.1",
+      "status": "FIXED",
+      "statusDetail": "FIXED on Swift 6.3.1 (Xcode 26.4.1). Minimal Variant 2 compiles and runs. Production Tagged.swift widened to RawValue: ~Copyable & ~Escapable; 59/59 tagged-primitives tests continue to pass.",
+      "statusRaw": "FIXED",
+      "supersededBy": null,
+      "crossRefs": []
+    }
+  ]
+}
