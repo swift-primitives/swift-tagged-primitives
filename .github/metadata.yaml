@@ -1,0 +1,9 @@
+# .github/metadata.yaml
+# Triaged 2026-04-29 — refined for the swift-primitives 0.1.0 release-cohort path.
+description: "Phantom-typed value wrappers for zero-cost type safety in Swift, including Index, Cardinal, Ordinal, and Hash."
+topics:
+  - primitives
+  - tagged
+  - phantom-types
+  - type-safety
+homepage: "https://swift-institute.org"
