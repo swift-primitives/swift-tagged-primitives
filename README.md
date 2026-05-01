@@ -4,7 +4,7 @@
 
 Phantom-typed value wrappers for zero-cost type safety — `Tagged<Tag, RawValue>` gives ecosystem types like `Index<Element>`, `Cardinal`, `Ordinal`, and `Hash.Value` their type-level identity without runtime cost, including across `~Copyable` and `~Escapable` raw values.
 
-> Forked from [`pointfreeco/swift-tagged`](https://github.com/pointfreeco/swift-tagged). The Institute fork keeps the `Tagged<Tag, RawValue>` shape but constrains the default conformance surface: `~Copyable` and `~Escapable` are admitted on both parameters, Foundation is excluded, and operator forwarding is removed (so `Index<Graph> + Index<Bit>` won't compile). The fork is heritage-only — divergences are principled and permanent; upstream changes are re-authored, not merged. See [`Research/comparative-analysis-pointfree-swift-tagged.md`](./Research/comparative-analysis-pointfree-swift-tagged.md) for the per-dimension divergence rationale.
+> Forked from [`pointfreeco/swift-tagged`](https://github.com/pointfreeco/swift-tagged), Point-Free's phantom-typed wrapper that introduced the pattern in the Swift ecosystem. See [_Forked from: what heritage means at the Swift Institute_](https://swift-institute.org/documentation/swift-institute/forked-from) for the Institute's heritage discipline.
 
 ---
 
