@@ -105,7 +105,7 @@ Consumers who need a `Result`-shaped outcome wrap at the call site: `Result(catc
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/swift-primitives/swift-tagged-primitives.git", from: "0.1.0")
+    .package(url: "https://github.com/swift-primitives/swift-tagged-primitives.git", branch: "main")
 ]
 ```
 
