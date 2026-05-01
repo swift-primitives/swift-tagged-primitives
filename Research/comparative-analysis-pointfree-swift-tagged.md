@@ -21,7 +21,7 @@ This document provides a systematic comparison across eight dimensions. The goal
 
 ## Prior Art
 
-Point-Free introduced swift-tagged in 2018 via [Episode #12](https://www.pointfree.co/episodes/ep12-tagged). The library popularized the phantom type wrapper pattern in the Swift ecosystem. It has broad adoption and a clean, pragmatic API.
+Point-Free introduced swift-tagged in 2018 via [Episode #12](https://www.pointfree.co/episodes/ep12-tagged). The library popularized the phantom type wrapper pattern in the Swift ecosystem. It has a clean, pragmatic API.
 
 Our implementation began as a fork of the same concept for the Swift Institute primitives ecosystem. Constraints of that ecosystem — Foundation-independence [PRIM-FOUND-001], `~Copyable` support, operator safety, and zero-cost verification — drove the divergence documented here.
 

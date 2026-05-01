@@ -52,8 +52,9 @@ properties of the type system itself.
   ensuring `Tagged` works for all tags — including tags parameterized by
   noncopyable element types like `Index<Element>` where `Element: ~Copyable`.
 - **Noncopyable raw values.** `Tagged<Tag, RawValue: ~Copyable>` supports
-  move-only wrapped values, a dimension no other ecosystem's phantom type
-  wrapper provides.
+  move-only wrapped values — a dimension neither stdlib's `RawRepresentable`
+  nor `pointfreeco/swift-tagged` admits, since both predate noncopyable
+  generics.
 
 ## Topics
 
