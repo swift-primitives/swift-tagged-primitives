@@ -77,9 +77,15 @@ let asOrder:  Order.ID             = id.retag()              // preserve RawValu
 ```swift
 struct ParseError: Error { let message: String }
 
+extension Tagged where Tag == User, RawValue == UInt64 {
+    public init(_ value: UInt64) {
+        self.init(__unchecked: (), value)
+    }
+}
+
 func parseUserID(_ raw: String) throws(ParseError) -> User.ID {
     guard let n = UInt64(raw) else { throw ParseError(message: "not a number") }
-    return User.ID(__unchecked: (), n)
+    return User.ID(n)
 }
 
 let id: Tagged<User, String> = "42"
@@ -88,6 +94,8 @@ let parsed: User.ID = try id.map { raw throws(ParseError) in
     return n
 }
 ```
+
+The `init(__unchecked:, _:)` signature is the package's escape hatch, intended for use inside custom-init declarations like the one above. Domain types declare their own initializers that wrap `__unchecked:` internally; consumers call those wrappers, not `__unchecked:` directly.
 
 Consumers who need a `Result`-shaped outcome wrap at the call site: `Result(catching: { try id.map(transform) })`.
 
