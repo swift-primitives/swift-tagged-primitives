@@ -9,11 +9,11 @@
     {
       "directory": "generic-throws-init",
       "displayName": "generic-throws-init",
-      "purpose": "Improvement-discovery experiment for the __unchecked: init situation in Tagged + Carrier. Tests six variants (V1 baseline, V2 generic-throws with default closure, V3 V1+V2 overloaded, V4 parallel protocol with generic-throws requirement, V5 default extension on real Carrier, V6 protocol requirement + default impl) to discriminate hypotheses about whether a public init pattern can subsume per-domain custom-init declarations and how throwing validation should be admitted.",
+      "purpose": "Improvement-discovery experiment for the __unchecked: init situation in Tagged + Carrier. Tests six variants (V1 baseline, V2 generic-throws with default closure, V3 V1+V2 overloaded, V4 parallel protocol with generic-throws requirement, V5 default extension on real Carrier, V6 protocol requirement + default impl) plus V7 commentary on validation-mandatory types. Discriminates hypotheses about whether a public init pattern can subsume per-domain custom-init declarations and how throwing validation should be admitted.",
       "date": "2026-05-01",
       "toolchain": "Swift 6.3",
       "status": "PARTIAL",
-      "statusDetail": "H1 / H3 / H4 / H5 / H6 CONFIRMED; H2 REFUTED. The simple 'single API via E == Never inference from default empty closure' shape doesn't compile (Swift can't infer E without an anchor). Working answers: V5 (default extension on Carrier) gives every Carrier conformer a throwing init for free; V6 (protocol requirement + default impl) adds polymorphism on top with the same zero-migration. Both leave __unchecked: as an internal escape hatch.",
+      "statusDetail": "H1 / H3 / H4 / H5 / H6 CONFIRMED; H2 REFUTED. The simple 'single API via E == Never inference from default empty closure' shape doesn't compile. Working answers: V5 (default extension on Carrier) gives every Carrier conformer a throwing init for free; V6 (requirement + default impl) adds polymorphism. Structural trade-off (V7): both V5 and V6 add non-opt-out-able public surface; validation-mandatory types lose the protection the current __unchecked:-only design provides. Decision deferred to research-process between (a) keep current __unchecked: discipline, (b) ship V5/V6 accepting the structural softening, (c) introduce a marker protocol for validation-mandatory types.",
       "statusRaw": "PARTIAL",
       "supersededBy": null,
       "crossRefs": []

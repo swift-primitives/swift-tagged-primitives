@@ -73,37 +73,62 @@
 //
 // Adoption verdict (per [EXP-019]):
 //   The simple "single API via E == Never inference" idea (H2) is REFUTED.
-//   But the broader question — "can we improve the __unchecked: situation
-//   for Carrier and Tagged?" — has clear positive answers:
+//   The broader question — "can we improve the __unchecked: situation
+//   for Carrier and Tagged?" — has working answers via H5 / H6, but each
+//   carries a trade-off the experiment surfaces but does not resolve:
+//
+//   POSITIVE FINDINGS:
 //
 //   • H5 (default extension on Carrier) is the lowest-cost path: ship a
 //     generic-throws init via extension on `Carrier where Self: ~Copyable
 //     & ~Escapable`. Every Carrier conformer (including Tagged) gains a
 //     throwing init at the call site `try X(value) { v in validate(v) }`
 //     without declaring anything per-domain. Migration cost: zero.
-//     Polymorphism: none (extension methods aren't polymorphic over the
-//     protocol).
+//     Polymorphism: none.
 //
 //   • H6 (requirement + default impl) adds polymorphism: each Carrier
 //     conformer MAY override the default with custom validation. Migration
-//     cost: still zero (the default handles existing conformers). Cost:
-//     larger protocol surface; conformers must satisfy the requirement
-//     (default usually suffices).
+//     cost: still zero. Cost: larger protocol surface.
 //
 //   • Both H5 and H6 leave `init(__unchecked:, _:)` as the package's
 //     internal escape hatch, used only inside the public init bodies.
 //     Consumers never invoke `__unchecked:` directly.
 //
-//   The "consumer declares their own inits" stance (current README) is
-//   *softened* by H5/H6: simple cases stop needing per-domain declarations.
-//   Validation cases still benefit from per-domain inits when the
-//   validation closure is reused; for one-off validations, the inline
-//   closure form (`try Tagged<Tag, T>(v) { v in ... }`) suffices.
+//   STRUCTURAL TRADE-OFF (V7 / "validation-mandatory types"):
 //
-//   Recommended next step: research-process the design choice between H5
-//   (extension only) and H6 (requirement + default), with a focus on
-//   whether Carrier needs polymorphic throwing inits, and whether the
-//   stronger contract (H6) is worth the protocol-surface cost.
+//   Carrier already requires a public `init(_ underlying:)`. Public types
+//   that conform to Carrier MUST expose direct unchecked construction
+//   (V7 demonstrates the failure mode for types wanting a non-public
+//   init). V5 and V6 propagate one MORE non-opt-out-able public init
+//   through this surface — Swift has no mechanism to opt out of a
+//   default extension method or a requirement's default impl. Conformers
+//   can only override; they cannot remove.
+//
+//   The current `__unchecked:`-only design is intentionally restrictive:
+//   the awkward label forces consumers to declare per-domain inits,
+//   which means validation-mandatory types can keep all direct
+//   construction internal to their module. V5 and V6 soften this — every
+//   Carrier conformer (including Tagged-aliased domain types) inherits
+//   the throwing init for free, regardless of whether the consumer wanted
+//   to expose it.
+//
+//   WHO BENEFITS / WHO LOSES:
+//
+//   • Wrapper-with-optional-validation types: V5/V6 = win. Drop per-
+//     domain init declarations; pay zero migration; gain throwing path.
+//
+//   • Validation-mandatory types: V5/V6 = loss. Carrier conformance was
+//     already too permissive (existing `init(_ underlying:)` requirement);
+//     V5/V6 add another non-opt-out-able public init. Either don't conform
+//     to Carrier, or accept the leak.
+//
+//   The decision turns on which case the Institute weights more heavily.
+//   Recommended next step: research-process to resolve the design between
+//   (a) keep current `__unchecked:` discipline (no V5/V6); (b) ship V5/V6
+//   accepting the structural softening; (c) introduce a marker protocol
+//   for validation-mandatory types (`StrictCarrier` or similar) that
+//   omits the construction requirement, leaving Carrier as the
+//   "constructible" subset.
 
 public import Tagged_Primitives
 public import Carrier_Primitives
@@ -212,6 +237,42 @@ public struct V4Cardinal: GenericThrowsCarrier {
 
     public var rawValue: UInt64 { _storage }
 }
+
+// MARK: - V7 — Can a public Carrier conformer hide its init?
+//
+// V7 hypothesis: a public type wanting to be `Carrier` BUT NOT expose a
+// public init cannot do so under the current Carrier design. The protocol
+// requires `init(_ underlying:)` at the conformance's access level; a
+// non-public init won't satisfy a public protocol requirement.
+//
+// This isn't introduced by V5/V6 — it's the existing Carrier design.
+// Document the limitation here so the verdict can address whether
+// V5/V6 should propagate that constraint further or be reconsidered.
+//
+// V7 is intentionally commented out so the experiment continues to build.
+// Uncommenting reproduces the diagnostic:
+//
+//     error: initializer 'init(_:)' must be declared public because it
+//     matches a requirement in public protocol 'Carrier'
+//
+// public struct V7Validated: Carrier {
+//     public typealias Underlying = String
+//     private let _storage: String
+//
+//     public var underlying: String { _read { yield _storage } }
+//
+//     // Non-public init — fails to satisfy Carrier's public requirement.
+//     internal init(_ underlying: consuming String) {
+//         self._storage = underlying
+//     }
+//
+//     // Even with a public throwing factory, the non-public init can't
+//     // satisfy the protocol requirement.
+//     public static func validated(_ raw: String) throws(V2Error) -> V7Validated {
+//         guard !raw.isEmpty else { throw .notPositive }
+//         return V7Validated(raw)
+//     }
+// }
 
 // MARK: - V5 — Default generic-throws init on real Carrier (zero-migration path)
 
