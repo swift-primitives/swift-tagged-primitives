@@ -14,7 +14,7 @@ Phantom-typed value wrappers for zero-cost type safety — `Tagged<Tag, RawValue
 - **Operator non-forwarding is a feature** — arithmetic on `RawValue` is never automatically available on `Tagged`, preventing `Index<Graph> + Index<Bit>.Count` from compiling even though both wrap types with a defined `+`. Operations are declared per-domain with matching `Tag` constraints.
 - **Universal `Tag: ~Copyable & ~Escapable`** — every extension lifts the tag's copyability and escapability constraints, so phantom-typed indices into `~Copyable` containers (`Index<Element>` where `Element: ~Copyable`) do not lose their operators.
 - **`~Copyable` and `~Escapable` `RawValue`** — `Tagged` admits move-only and lifetime-bounded wrapped values; the ecosystem's typed pointers and scoped references (`Ownership.Inout`, `Ownership.Borrow`) wrap cleanly. Neither stdlib's `RawRepresentable` nor `pointfreeco/swift-tagged` admits this; both predate Swift's noncopyable-generics features (SE-0427, SE-0446).
-- **`Ownership.Borrow.Protocol` conformance** (ships with `swift-ownership-primitives`) — `Tagged<Tag, RawValue>` is `Ownership.Borrow.Protocol` when `RawValue` is; `Tagged.Borrowed` resolves to `RawValue.Borrowed`. The conformance lives in `swift-ownership-primitives/Sources/Ownership Borrow Primitives/`, matching the ecosystem convention where conformances of Tagged to non-stdlib capability protocols live with the protocol's home package (see `swift-ordinal-primitives` for the same pattern with `Ordinal.Protocol`).
+- **`Ownership.Borrow.Protocol` conformance** — `Tagged<Tag, RawValue>` is `Ownership.Borrow.Protocol` when `RawValue` is; `Tagged.Borrowed` resolves to `RawValue.Borrowed`. The conformance is supplied by [`swift-ownership-primitives`](https://github.com/swift-primitives/swift-ownership-primitives) (the package that declares the protocol).
 - **`Carrier` cascading conformance** (ships in this package) — `Tagged<Tag, RawValue>` is `Carrier` when `RawValue` is, with `Underlying` cascading through `RawValue.Underlying`. APIs declared as `some Carrier<Cardinal>` accept bare `Cardinal` AND `Tagged<Tag, Cardinal>` uniformly; nested wrappers like `Tagged<X, Tagged<Y, Cardinal>>` resolve to the innermost trivial-self carrier. The phantom `Tag` becomes Carrier's `Domain` discriminator.
 
 ---
@@ -70,7 +70,7 @@ let asString: Tagged<User, String> = id.map { String($0) }   // preserve Tag, tr
 let asOrder:  Order.ID             = id.retag()              // preserve RawValue, change Tag (explicit coercion)
 ```
 
-`retag` is a phantom coercion — with `@inlinable`, the optimizer eliminates the call. It is a meaningful operation for domain-identity wrappers because crossing domains IS the intent. (Contrast: the sibling `Property<Tag, Base>` type in `swift-property-primitives` uses the tag as a *verb namespace* — retagging `Push` to `Pop` would be semantically nonsensical. The `Phantom Tag Semantics` DocC article in this package's catalog details the two-role taxonomy.)
+`retag` is a phantom coercion — with `@inlinable`, the optimizer eliminates the call. It is a meaningful operation for domain-identity wrappers because crossing domains IS the intent. (Contrast: [`Property<Tag, Base>`](https://github.com/swift-primitives/swift-property-primitives) uses the tag as a verb namespace, not a domain identity — retagging makes no sense there.)
 
 `Tagged.map` uses typed throws (`throws(E) where E: Error`); the error type is part of the signature, not erased to `any Error`:
 
@@ -122,8 +122,6 @@ dependencies: [
 
 Requires Swift 6.3.1 and macOS 26 / iOS 26 / tvOS 26 / watchOS 26 / visionOS 26 (or the matching Linux / Windows toolchain).
 
-> **Pre-tag note**: this package's `Package.swift` currently pins its single dependency `swift-carrier-primitives` to `branch: "main"` as a publication-ready interim. The dependency will graduate to `from: "0.1.0"` once `swift-carrier-primitives` cuts its 0.1.0 tag (the two packages are part of the same release cohort). Consumers using the snippet above will resolve cleanly once both tags are in place.
-
 ---
 
 ## Architecture
@@ -150,17 +148,23 @@ Opt-in via `import Tagged_Primitives_Standard_Library_Integration` (which re-exp
 | `Tagged+Sequence.swift` | `Sequence` (forwards `makeIterator`; wrapper-vs-content conflation trade-off documented). |
 | `Tagged+Collection.swift` | `Collection` (forwards `startIndex` / `endIndex` / `subscript` / `index(after:)`). |
 
-### Excluded from SLI
+### Deliberate absences
 
-The conformances absent from SLI fall into three categories. **Structural Swift-level blockers**: `RawRepresentable` (not authorable on Swift 6.3.1 due to `~Escapable` non-awareness) and `@dynamicMemberLookup` (a type-declaration attribute, not retroactive on extensions). **Foundation axiom**: `LocalizedError` and `UUID` convenience inits would require importing Foundation, which the primitives layer doesn't do. **Policy trade-off**: `AdditiveArithmetic` / `Numeric` family (operator-forwarding footgun on cross-domain arithmetic — the very property the fork's "operator non-forwarding is a feature" stance protects against), `Strideable` (SLI-excluded to keep the literal-conformance footgun dormant for SLI-only consumers; documented in [`Research/sli-literal-vs-strideable-tradeoff.md`](./Research/sli-literal-vs-strideable-tradeoff.md)), and the niche / already-covered protocols `CustomPlaygroundDisplayConvertible` / `CodingKeyRepresentable` / Decodable's double-try fallback. Each absence has a research doc + paired experiment under `Research/principled-absence-*.md` and `Experiments/tagged-no-*/` (10 + 10), classifying it as HARD blocker, SOFT-shipped-in-SLI, or SOFT-excluded-by-policy with empirical evidence.
+Some SLI conformances are deliberately absent where they would imply Foundation dependencies, invalid semantics, or unsupported forwarding. See [`Research/sli-deliberate-absences.md`](./Research/sli-deliberate-absences.md) for the catalogue (three categories, ten entries, each linking to a research doc + paired experiment).
 
 ### Dependencies
 
 The single direct dependency, `swift-carrier-primitives`, provides the `Carrier` capability protocol that `Tagged: Carrier` cascades through. Other ecosystem-specific conformances on `Tagged` (`Ordinal.Protocol`, `Ownership.Borrow.Protocol`, etc.) live in the respective protocol / capability packages that import `swift-tagged-primitives`.
 
-### Versioning and stability
+### Stability
 
-The 0.1.x line commits to the conformance set documented above: main ships the unconditional + conditional conformances on `Tagged`, SLI ships exactly the 5 forwarding conformances + 9 literal conformances enumerated, and Test Support re-exports both. **Additive changes** within 0.1.x — new conformances on `Tagged` shipped in main or SLI — are non-breaking and may land in patch releases; the per-protocol absence catalog is the inventory of candidates. **Removals or scope reductions** require a minor-version bump (0.2.0+). The `unsafeBitCast` carve-out's scope is bounded to its current two sites; widening the carve-out to a third site requires a minor-version bump and a new entry in the per-protocol absence catalog. The fork-as-heritage shape is structural and permanent; the package does not merge upstream changes, so upstream's release cadence does not affect this package's SemVer trajectory.
+`swift-tagged-primitives` follows SemVer pre-release semantics in 0.x.
+
+| Surface | 0.1.x expectation |
+|---|---|
+| Public type names | Stable within 0.1.x |
+| Documented initializers, functor operations, and conformance set (main + SLI) | Stable within 0.1.x; additive changes (new conformances) may land in patch releases |
+| Internal storage shapes / `unsafeBitCast` carve-out scope / fork-heritage choreography | Not part of the source-stability commitment |
 
 ---
 

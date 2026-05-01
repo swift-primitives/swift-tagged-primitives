@@ -1,11 +1,22 @@
 {
   "$schema": "https://swift-institute.org/schemas/research-index-v1.json",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-04-30",
+  "generatedAt": "2026-05-01",
   "title": "Research Index",
   "blurb": "",
   "scope": "swift-tagged-primitives (swift-primitives)",
   "documents": [
+    {
+      "file": "sli-deliberate-absences.md",
+      "displayName": "sli-deliberate-absences",
+      "topic": "One-page catalogue of stdlib protocols that Tagged Primitives Standard Library Integration (SLI) does NOT conform Tagged to, plus SLI-shipped conformances with documented caveats. Three categories (Structural Swift-level blockers / Foundation axiom / Policy trade-off); each entry classified as HARD, SOFT-shipped-in-SLI, or SOFT-excluded-by-policy with the paired research doc + experiment under Research/principled-absence-*.md and Experiments/tagged-no-*/. Created 2026-05-01 to relocate the README's prior 200-word in-prose enumeration to a single linkable artifact, per cohort README evaluator-pass remediation (swift-institute/Research/cohort-readme-evaluator-pass.md).",
+      "date": "2026-05-01",
+      "status": "CATALOGUE",
+      "statusDetail": "Catalogue document. Indexes the 10 principled-absence-*.md research docs and the SLI-shipped-with-caveat conformances. Replaces in-README enumeration as the README's link target for 'See deliberate absences' pointers.",
+      "statusRaw": "CATALOGUE",
+      "tier": 2,
+      "scope": "swift-tagged-primitives"
+    },
     {
       "file": "principled-absence-niche-protocols.md",
       "displayName": "principled-absence-niche-protocols",
