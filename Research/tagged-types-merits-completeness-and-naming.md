@@ -48,7 +48,7 @@ Resolved by `comparative-analysis-pointfree-swift-tagged.md` (DECISION, 2026-02-
 
 | Dimension | Our delta | Merit verdict |
 |-----------|-----------|---------------|
-| `~Copyable` / `~Escapable` support in Tag AND RawValue | Both admitted | **Unique** — no other phantom-type wrapper across Swift / Haskell / Rust / OCaml / TypeScript supports move-only and lifetime-bounded wrapped values. Required for `Index<Element>` where `Element: ~Copyable`. |
+| `~Copyable` / `~Escapable` support in Tag AND RawValue | Both admitted | **Distinctive** — neither stdlib's `RawRepresentable` nor `pointfreeco/swift-tagged` admits this; both predate Swift's noncopyable-generics features (SE-0427, SE-0446). Required for `Index<Element>` where `Element: ~Copyable`. |
 | Zero-cost verification | `@inlinable` + `@usableFromInline` + codegen experiment + 7 MemoryLayout proof tests | **Superior** — Point-Free claims zero-cost; we prove it. |
 | Operator non-forwarding | Deliberate | **Diverges** — Point-Free ships `Numeric` / `AdditiveArithmetic` / `Strideable`. We don't. The divergence is the safety guarantee: if `Tagged<Graph, Int>` conformed to `Numeric`, `Index<Graph> + Index<Bit>.Count` would compile. |
 | Typed throws | `throws(E)` on `map` | **Superior** — Point-Free's `rethrows` erases to `any Error`. |

@@ -86,10 +86,11 @@ practice, the optimizer reliably eliminates the wrapper in release builds.
 ### Noncopyable Support
 
 `Tagged<Tag: ~Copyable, RawValue: ~Copyable>` supports noncopyable
-(affine) types in both the tag and value positions. This is unique among
-phantom type implementations across programming languages — Haskell has
-no move semantics, Rust's `PhantomData` requires a zero-sized type for
-the phantom field, and OCaml and TypeScript have no substructural types.
+(affine) types in both the tag and value positions. The combination is
+uncommon in phantom-type implementations elsewhere: Haskell has
+no move semantics in its base type system, Rust's `PhantomData` requires
+a zero-sized type for the phantom field, and OCaml and TypeScript have
+no substructural types.
 
 The `Tag: ~Copyable` constraint is semantically significant. It enables
 `Index<Element>` where `Element: ~Copyable` — type-safe indices into
