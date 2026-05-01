@@ -1,11 +1,23 @@
 {
   "$schema": "https://swift-institute.org/schemas/experiments-index-v1.json",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-04-30",
+  "generatedAt": "2026-05-01",
   "title": "Experiments Index",
   "blurb": "",
   "scope": "swift-tagged-primitives (swift-primitives)",
   "experiments": [
+    {
+      "directory": "generic-throws-init",
+      "displayName": "generic-throws-init",
+      "purpose": "Improvement-discovery experiment for the __unchecked: init situation in Tagged + Carrier. Tests six variants (V1 baseline, V2 generic-throws with default closure, V3 V1+V2 overloaded, V4 parallel protocol with generic-throws requirement, V5 default extension on real Carrier, V6 protocol requirement + default impl) to discriminate hypotheses about whether a public init pattern can subsume per-domain custom-init declarations and how throwing validation should be admitted.",
+      "date": "2026-05-01",
+      "toolchain": "Swift 6.3",
+      "status": "PARTIAL",
+      "statusDetail": "H1 / H3 / H4 / H5 / H6 CONFIRMED; H2 REFUTED. The simple 'single API via E == Never inference from default empty closure' shape doesn't compile (Swift can't infer E without an anchor). Working answers: V5 (default extension on Carrier) gives every Carrier conformer a throwing init for free; V6 (protocol requirement + default impl) adds polymorphism on top with the same zero-migration. Both leave __unchecked: as an internal escape hatch.",
+      "statusRaw": "PARTIAL",
+      "supersededBy": null,
+      "crossRefs": []
+    },
     {
       "directory": "tagged-no-niche-protocols",
       "displayName": "tagged-no-niche-protocols",
