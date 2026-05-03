@@ -1,81 +1,71 @@
 // Tagged+Carrier.Protocol.swift
-// Tagged conforms to Carrier.`Protocol` (a.k.a. Carrying), with the
-// witness `Underlying` cascading through the immediate generic-param
-// `Underlying` to the bottom of the chain.
 //
-// The witness signatures use `Self.Underlying` qualification because
-// the protocol's associated-type witness and Tagged's generic
-// parameter share the name `Underlying`. Inside this extension's
-// scope, `Self.Underlying` resolves to the typealias witness
-// (`Underlying.Underlying`, the cascade end), and unqualified
-// `Underlying` resolves to the generic parameter (the immediate
-// wrapped type). The init body uses both: `Self.Underlying` for the
-// parameter type, `Underlying` for the constructor of the immediate
-// wrapper.
+// Tagged is unconditionally a Carrier of its IMMEDIATE Underlying.
+// No cascade, no constraint on what Underlying is.
+//
+// Earlier revisions encoded a cascade — `Tagged<X, Tagged<Y, Int>>.Underlying
+// resolved to Int (the bottom-most type) by requiring `Underlying: Carrier.\`Protocol\``
+// and recursing through `Underlying.Underlying`. That design forced four
+// real costs onto every consumer:
+//
+//   1. Tagged was not a Carrier when Underlying wasn't (e.g.,
+//      `Tagged<Tag, Ownership.Inout<Base>>` couldn't get the conformance
+//      because `Ownership.Inout` is a scoped projection, not an owned value
+//      that can satisfy Carrier's consuming init — Property.View was blocked).
+//   2. Name-shadowing complexity: `Self.Underlying` (cascade-end) vs
+//      `Underlying` (generic param) collided; conformers had to qualify.
+//   3. Brittle transitive dependency: Tagged's Carrier-ness depended on
+//      Underlying's Carrier-ness, all the way down.
+//   4. A leaky abstraction: nested Tagged exposed only the bottom-most type,
+//      hiding intermediate structure that consumers might need.
+//
+// The immediate-Underlying form here unconditional, has no shadowing, no
+// transitive dependency, and is honest about nested structure. The
+// payoff lost — uniform `some Carrier.\`Protocol\`<Cardinal>` over arbitrary
+// nesting depth — was rare-to-nonexistent in practice; consumers that
+// genuinely need it write the recursion at the API site.
 
 public import Carrier_Primitives
 
-// MARK: - Carrier.`Protocol` Conformance
+// MARK: - Carrier.`Protocol` Conformance (unconditional, immediate)
 
-/// Tagged is a Carrier whenever its `Underlying` is.
-///
-/// The conformance cascades: `Tagged<Tag, Underlying>.Underlying ==
-/// Underlying.Underlying`. For a single-level wrapper like
-/// `Tagged<User, Cardinal>` (where `Cardinal: Carrier.\`Protocol\``
-/// with `Underlying == Cardinal`), this gives
-/// `Tagged<User, Cardinal>.Underlying == Cardinal`. For nested wrappers
-/// like `Tagged<X, Tagged<Y, Cardinal>>`, the cascade resolves
-/// `Underlying` all the way down to the innermost trivial-self-carrier.
-///
-/// This is the move that lets `some Carrier.\`Protocol\`<Cardinal>`
-/// accept bare `Cardinal`, `Tagged<User, Cardinal>`, and any
-/// further-nested Tagged variant uniformly.
+/// Tagged is always a Carrier of its immediate `Underlying`, regardless of
+/// what `Underlying` is.
 ///
 /// The phantom `Tag` becomes the Carrier's `Domain` discriminator,
-/// preserving the "phantom-typed wrappers stay distinct" property
-/// at the protocol level.
+/// preserving the "phantom-typed wrappers stay distinct" property at the
+/// protocol level.
+///
+/// `Tagged<Tag, U>.Underlying == U`. For nested `Tagged<X, Tagged<Y, Int>>`,
+/// `.Underlying == Tagged<Y, Int>` (the immediate wrapped type) — to reach
+/// `Int`, recurse: `tagged.underlying.underlying`.
 extension Tagged: Carrier.`Protocol`
-where Tag: ~Copyable & ~Escapable, Underlying: Carrier.`Protocol` & ~Copyable & ~Escapable {
+where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable {
     /// The phantom `Tag` IS the Carrier's `Domain`.
     public typealias Domain = Tag
 
-    /// `Underlying` cascades through the generic-param's own Carrier
-    /// conformance. The LHS is the protocol witness; the RHS first
-    /// `Underlying` is Tagged's generic parameter; this resolves to the
-    /// cascade-end type for both trivial-self and nested cases.
-    public typealias Underlying = Underlying.Underlying
+    /// `Underlying` is the immediate generic parameter — no cascade.
+    public typealias Underlying = Underlying
 
-    /// Borrowing access to the cascade-end underlying value, threaded
-    /// through the immediate generic-param's `.underlying`. The
-    /// `_read` coroutine yields by borrow, supporting both `Copyable`
-    /// and `~Copyable` Underlying.
-    ///
-    /// Note: the property type is `Self.Underlying` (the typealias
-    /// witness, which is the cascade-end type), not the unqualified
-    /// `Underlying` (which would resolve to the generic parameter).
-    /// This qualification is required because the names collide.
+    /// Borrowing access to the wrapped value via a `_read` coroutine.
+    /// Yields directly out of `_storage`; supports both `Copyable` and
+    /// `~Copyable` Underlying.
     ///
     /// The `@_lifetime(borrow self)` annotation lives on the protocol
     /// declaration; conformers do not repeat it.
-    public var underlying: Self.Underlying {
+    public var underlying: Underlying {
         @_lifetime(borrow self)
-        _read { yield _storage.underlying }
+        _read { yield _storage }
     }
 
-    /// Constructs a tagged carrier from a cascade-end underlying value
-    /// by reconstructing the intermediate immediate-level value via its
-    /// own Carrier init, then wrapping. The chain transfers ownership
-    /// end-to-end: cascade-end → intermediate → Tagged.
+    /// Constructs a tagged carrier by directly storing the consumed
+    /// underlying value. No transitive Carrier construction — the
+    /// generic-parameter `Underlying` is accepted as-is.
     ///
-    /// In the body, `Underlying(underlying)` uses the GENERIC-PARAMETER
-    /// `Underlying` (the immediate wrapped type) to construct that
-    /// intermediate value from the cascade-end value. The result is
-    /// then handed to `_unchecked:` to wrap into Tagged.
-    ///
-    /// The `@_lifetime(copy underlying)` annotation lives on the
-    /// protocol declaration; conformers do not repeat it.
+    /// The `@_lifetime(copy underlying)` annotation lives on the protocol
+    /// declaration; conformers do not repeat it.
     @_lifetime(copy underlying)
-    public init(_ underlying: consuming Self.Underlying) {
-        self.init(_unchecked: Underlying(underlying))
+    public init(_ underlying: consuming Underlying) {
+        self.init(_unchecked: underlying)
     }
 }
