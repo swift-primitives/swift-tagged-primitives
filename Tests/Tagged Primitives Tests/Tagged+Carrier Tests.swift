@@ -13,16 +13,16 @@ private enum Tag3 {}
 // MARK: - Generic dispatch helpers
 
 // A function constrained on `Carrier.`Protocol`<Int>` — accepts any value
-// whose Underlying type chain resolves to Int. Used to verify the cascade.
+// whose immediate Underlying type is Int. Used to verify single-level
+// Tagged conformance.
 private func describeIntCarrier<C: Carrier.`Protocol`>(_ c: C) -> Int
 where C.Underlying == Int {
     c.underlying
 }
 
 // A function constrained on bare `Carrier.`Protocol`` (no Underlying
-// constraint) — accepts any Carrier. Used to verify Form-D generic
-// algorithms. Returns the Underlying type name as a string for runtime
-// assertion.
+// constraint) — accepts any Carrier. Returns the Underlying type name as
+// a string for runtime assertion.
 private func describeAnyCarrier<C: Carrier.`Protocol`>(_ c: C) -> String {
     String(describing: C.Underlying.self)
 }
@@ -58,31 +58,53 @@ extension `Tagged + Carrier Tests`.Unit {
         let _: Tagged<Tag1, Int>.Domain.Type = Tag1.self
         let _: Tagged<Tag2, Int>.Domain.Type = Tag2.self
     }
+
+    // MARK: Immediate-Underlying typealias
+
+    @Test
+    func `Underlying associatedtype equals the immediate generic parameter`() {
+        // Compile-time assertion: Tagged<Tag1, Int>.Underlying == Int.
+        let _: Tagged<Tag1, Int>.Underlying.Type = Int.self
+    }
+
+    @Test
+    func `nested Tagged exposes immediate wrapped type as Underlying`() {
+        // Compile-time assertion: Tagged<Tag1, Tagged<Tag2, Int>>.Underlying
+        // == Tagged<Tag2, Int> (the IMMEDIATE wrapped type, not the cascade-end Int).
+        let _: Tagged<Tag1, Tagged<Tag2, Int>>.Underlying.Type
+            = Tagged<Tag2, Int>.self
+    }
 }
 
 // MARK: - Edge Case
 
 extension `Tagged + Carrier Tests`.`Edge Case` {
 
-    // MARK: Deep nesting — three-level cascade
+    // MARK: Manual recursion across nested Tagged
 
     @Test
-    func `triple-nested Tagged cascades through to innermost Underlying`() {
-        // Three-level wrapping: Tagged<X, Tagged<Y, Tagged<Z, Int>>>.
-        // Cascading literal init via ExpressibleByIntegerLiteral works
-        // recursively because each Tagged layer conforms when its Underlying
-        // does — Int → Tagged<Tag3, Int> → Tagged<Tag2, Tagged<Tag3, Int>>
-        // → Tagged<Tag1, Tagged<Tag2, Tagged<Tag3, Int>>>.
+    func `triple-nested Tagged reaches innermost via explicit recursion`() {
+        // The immediate-Underlying design hands the consumer one layer at a
+        // time. To reach the bottom, the consumer recurses explicitly:
+        //   outer.underlying → middle (Tagged<Tag2, Tagged<Tag3, Int>>)
+        //   middle.underlying → inner (Tagged<Tag3, Int>)
+        //   inner.underlying  → Int
+        //
+        // Construction goes through ExpressibleByIntegerLiteral, which
+        // recurses through each Tagged layer's literal init independently
+        // of the Carrier conformance.
         let outer: Tagged<Tag1, Tagged<Tag2, Tagged<Tag3, Int>>> = 99
-        let underlying = describeIntCarrier(outer)
-        #expect(underlying == 99)
+        let middle = outer.underlying    // Tagged<Tag2, Tagged<Tag3, Int>>
+        let inner  = middle.underlying   // Tagged<Tag3, Int>
+        let value  = inner.underlying    // Int
+        #expect(value == 99)
     }
 
     @Test
-    func `triple-nested Tagged init reconstructs the chain from raw underlying`() {
-        // The Carrier init transfers ownership end-to-end across all levels.
-        let constructed: Tagged<Tag1, Tagged<Tag2, Tagged<Tag3, Int>>> = .init(7)
-        #expect(constructed.underlying == 7)
+    func `triple-nested Tagged construction uses literal at each layer`() {
+        // No Carrier-cascade init exists; construction relies on
+        // ExpressibleByIntegerLiteral cascading through each layer.
+        let constructed: Tagged<Tag1, Tagged<Tag2, Tagged<Tag3, Int>>> = 7
         #expect(constructed.underlying.underlying.underlying == 7)
     }
 }
@@ -91,7 +113,7 @@ extension `Tagged + Carrier Tests`.`Edge Case` {
 
 extension `Tagged + Carrier Tests`.Integration {
 
-    // MARK: One-level cascade — Tagged<Tag, Int>
+    // MARK: Single-level Tagged
 
     @Test
     func `single-level Tagged conforms to Carrier with Underlying == Int`() {
@@ -104,37 +126,32 @@ extension `Tagged + Carrier Tests`.Integration {
     func `single-level Tagged round-trips through Carrier init`() {
         let constructed: Tagged<Tag1, Int> = .init(99)
         #expect(constructed.underlying == 99)
-        #expect(constructed.underlying == 99)
-    }
-
-    // MARK: Two-level cascade — Tagged<Tag, Tagged<OtherTag, Int>>
-
-    @Test
-    func `nested Tagged conforms to Carrier with Underlying cascading to Int`() {
-        let outer: Tagged<Tag1, Tagged<Tag2, Int>> = 7
-        let underlying = describeIntCarrier(outer)
-        #expect(underlying == 7)
-    }
-
-    @Test
-    func `nested Tagged init reconstructs the chain from raw underlying`() {
-        let constructed: Tagged<Tag1, Tagged<Tag2, Int>> = .init(13)
-        #expect(constructed.underlying == 13)
-        #expect(constructed.underlying.underlying == 13)
     }
 
     // MARK: Form-D generic algorithm — accepts any Carrier
 
     @Test
-    func `Form-D generic algorithm accepts bare and Tagged uniformly`() {
+    func `Form-D generic algorithm reports immediate Underlying type`() {
         let bare: Int = 1
         let single: Tagged<Tag1, Int> = 2
+
+        // bare Int's Underlying is Int (trivial-self carrier).
+        #expect(describeAnyCarrier(bare) == "Int")
+        // Tagged<Tag1, Int>'s immediate Underlying is Int.
+        #expect(describeAnyCarrier(single) == "Int")
+    }
+
+    @Test
+    func `Form-D generic algorithm distinguishes nesting layers`() {
         let nested: Tagged<Tag1, Tagged<Tag2, Int>> = 3
 
-        // All three resolve to the same Underlying type — Int.
-        #expect(describeAnyCarrier(bare) == "Int")
-        #expect(describeAnyCarrier(single) == "Int")
-        #expect(describeAnyCarrier(nested) == "Int")
+        // The immediate Underlying is Tagged<Tag2, Int>, NOT Int.
+        // This is the deliberate trade-off vs the prior cascade design:
+        // nested Tagged is honest about its structure; consumers that
+        // need the bottom-most type recurse explicitly.
+        let typeName = describeAnyCarrier(nested)
+        #expect(typeName.contains("Tagged"))
+        #expect(typeName.contains("Tag2"))
     }
 }
 
@@ -144,9 +161,9 @@ extension `Tagged + Carrier Tests`.Performance {
 
     @Test
     func `Form-D dispatch holds across batched carriers`() {
-        // Hot-path smoke check for the cascading Carrier conformance — the
-        // generic dispatch through `describeIntCarrier` must compile to
-        // a direct underlying-value access (no boxing, no virtual dispatch).
+        // Hot-path smoke check for the Carrier conformance — generic dispatch
+        // through `describeIntCarrier` must compile to a direct underlying-
+        // value access (no boxing, no virtual dispatch).
         var sum: Int = 0
         for i in 0..<1_000 {
             let tagged = Tagged<Tag1, Int>(_unchecked: i)

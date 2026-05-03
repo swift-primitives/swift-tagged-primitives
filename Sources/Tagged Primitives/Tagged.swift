@@ -29,10 +29,16 @@
 ///
 /// Tagged exposes no direct accessor or public init in its own type
 /// body. External construction and read access flow through the
-/// `Carrier.\`Protocol\`` (a.k.a. `Carrying`) conformance: when
-/// `Underlying: Carrier.\`Protocol\``, callers construct via
-/// `Tagged<Tag, U>(value)` and read via `tagged.underlying` (which
-/// cascades through `Underlying.underlying` to the cascade-end value).
+/// `Carrier.\`Protocol\`` (a.k.a. `Carrying`) conformance, which is
+/// **unconditional** — Tagged is always a Carrier of its immediate
+/// `Underlying`, regardless of what `Underlying` is. Callers construct
+/// via `Tagged<Tag, U>(value)` and read via `tagged.underlying`
+/// (returning the immediate `U`, not a recursively-resolved type).
+/// For nested `Tagged<X, Tagged<Y, Int>>`, `.underlying` returns
+/// `Tagged<Y, Int>`; consumers that need to reach `Int` recurse.
+/// The `_unchecked:` init is also `public` for cross-package consumers
+/// whose `Underlying` cannot satisfy Carrier's consuming init (e.g.,
+/// `Property.View` wrapping `Tagged<Tag, Ownership.Inout<Base>>`).
 @frozen
 public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable>: ~Copyable, ~Escapable {
     @usableFromInline

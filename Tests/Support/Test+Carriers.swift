@@ -15,10 +15,10 @@
 // added), and shipping a parametric form would lock a Domain choice that
 // downstream consumers should make for themselves.
 //
-// For the Tagged test suite, however, we need to assert that the
-// underlying value of a `Tagged<Tag, [Int]>` (etc.) round-trips through
-// the Carrier cascade — which requires the Element-collection types to
-// conform locally. Test Support is the appropriate scope.
+// For the Tagged test suite, however, we want to exercise generic
+// Carrier-based code over `Tagged<Tag, [Int]>` and friends, plus
+// occasionally pass bare collections to `some Carrier.\`Protocol\``-
+// constrained APIs. Test Support is the appropriate scope.
 
 public import Carrier_Primitives
 

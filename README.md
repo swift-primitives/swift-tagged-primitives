@@ -15,7 +15,7 @@ Phantom-typed value wrappers for zero-cost type safety — `Tagged<Tag, Underlyi
 - **Universal `Tag: ~Copyable & ~Escapable`** — every extension lifts the tag's copyability and escapability constraints, so phantom-typed indices into `~Copyable` containers (`Index<Element>` where `Element: ~Copyable`) do not lose their operators.
 - **`~Copyable` and `~Escapable` `Underlying`** — `Tagged` admits move-only and lifetime-bounded wrapped values; the ecosystem's typed pointers and scoped references (`Ownership.Inout`, `Ownership.Borrow`) wrap cleanly. Neither stdlib's `RawRepresentable` nor `pointfreeco/swift-tagged` admits this; both predate Swift's noncopyable-generics features (SE-0427, SE-0446).
 - **`Ownership.Borrow.Protocol` conformance** — `Tagged<Tag, Underlying>` is `Ownership.Borrow.Protocol` when `Underlying` is; `Tagged.Borrowed` resolves to `Underlying.Borrowed`. The conformance is supplied by [`swift-ownership-primitives`](https://github.com/swift-primitives/swift-ownership-primitives) (the package that declares the protocol).
-- **`Carrier.\`Protocol\`` cascading conformance** (ships in this package) — `Tagged<Tag, Underlying>` conforms to `Carrier.\`Protocol\`` when `Underlying` does, with `Tagged.Underlying` resolving through `Underlying.Underlying`. APIs declared as `some Carrier.\`Protocol\`<Cardinal>` (or the alias `some Carrying<Cardinal>`) accept bare `Cardinal` AND `Tagged<Tag, Cardinal>` uniformly; nested wrappers like `Tagged<X, Tagged<Y, Cardinal>>` resolve to the innermost trivial-self carrier. The phantom `Tag` becomes Carrier's `Domain` discriminator. External access to the wrapped value flows through `tagged.underlying` (the Carrier accessor); construction flows through `Tagged<Tag, U>(value)` (the Carrier init).
+- **Unconditional `Carrier.\`Protocol\`` conformance** (ships in this package) — `Tagged<Tag, Underlying>` is *always* a `Carrier.\`Protocol\`` of its immediate `Underlying`, regardless of what `Underlying` is. `Tagged.Underlying == Underlying` (the immediate generic parameter, not a recursive cascade). The phantom `Tag` becomes Carrier's `Domain` discriminator. External access flows through `tagged.underlying` (the Carrier accessor, returns the immediate wrapped value); construction flows through `Tagged<Tag, U>(value)` (the Carrier init). For nested `Tagged<X, Tagged<Y, U>>`, `.underlying` returns `Tagged<Y, U>` — consumers that need the bottom-most type recurse explicitly.
 
 ---
 
@@ -79,7 +79,7 @@ struct ParseError: Error { let message: String }
 
 func parseUserID(_ raw: String) throws(ParseError) -> User.ID {
     guard let n = UInt64(raw) else { throw ParseError(message: "not a number") }
-    return User.ID(n)   // Carrier init — accepts the cascade-end Underlying
+    return User.ID(n)   // Carrier init — accepts the immediate Underlying
 }
 
 let id: Tagged<User, String> = "42"
@@ -126,9 +126,9 @@ Three library products: `Tagged Primitives` (the umbrella), `Tagged Primitives S
 
 | File | Purpose |
 |------|---------|
-| `Tagged.swift` | The `Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable>` struct, functor operations (`map`, `retag`), and conditional conformances (`Sendable`, `Equatable`, `Hashable`, `Comparable`, `Codable`, `BitwiseCopyable`). The body holds only `_storage` (package-internal) and `init(_unchecked:)` (package-internal); all read/write surface flows through extensions. |
+| `Tagged.swift` | The `Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable>` struct, functor operations (`map`, `retag`), and conditional conformances (`Sendable`, `Equatable`, `Hashable`, `Comparable`, `Codable`, `BitwiseCopyable`). The body holds `_storage` (package-internal) and `init(_unchecked:)` (public — direct construction bypassing Carrier's consuming init, for cross-package consumers whose Underlying cannot satisfy that requirement, e.g., `Property.View` over `Ownership.Inout`). |
 | `Tagged+CustomStringConvertible.swift` | `CustomStringConvertible` forwarded to the underlying value. |
-| `Tagged+Carrier.Protocol.swift` | `Carrier.\`Protocol\`` cascading conformance — `Tagged.Underlying` resolves through `Underlying.Underlying`, lifting every Tagged-aliased ecosystem type into the `Carrier.\`Protocol\`` family. The phantom `Tag` becomes the `Domain` discriminator. Provides the public `underlying` accessor and `init(_:)` for external consumers. |
+| `Tagged+Carrier.Protocol.swift` | Unconditional `Carrier.\`Protocol\`` conformance — `Tagged.Underlying == Underlying` (immediate, no cascade). Tagged is always a Carrier of its immediate wrapped type, regardless of what `Underlying` is. The phantom `Tag` becomes the `Domain` discriminator. Provides the public `underlying` accessor and `init(_:)` for external consumers. |
 
 ### Standard Library Integration target (`Tagged Primitives Standard Library Integration`)
 
@@ -148,7 +148,7 @@ Some SLI conformances are deliberately absent where they would imply Foundation 
 
 ### Dependencies
 
-The single direct dependency, `swift-carrier-primitives`, provides the `Carrier.\`Protocol\`` capability protocol that `Tagged: Carrier.\`Protocol\`` cascades through. Other ecosystem-specific conformances on `Tagged` (`Ordinal.Protocol`, `Ownership.Borrow.Protocol`, etc.) live in the respective protocol / capability packages that import `swift-tagged-primitives`.
+The single direct dependency, `swift-carrier-primitives`, provides the `Carrier.\`Protocol\`` capability protocol that `Tagged: Carrier.\`Protocol\`` conforms to (unconditionally — Tagged is a Carrier of its immediate Underlying for any Underlying). Other ecosystem-specific conformances on `Tagged` (`Ordinal.Protocol`, `Ownership.Borrow.Protocol`, etc.) live in the respective protocol / capability packages that import `swift-tagged-primitives`.
 
 ### Stability
 
@@ -187,7 +187,7 @@ The single direct dependency, `swift-carrier-primitives`, provides the `Carrier.
 
 **Dependencies**:
 
-- `swift-carrier-primitives` — the `Carrier` capability protocol that `Tagged: Carrier` cascades through (declared in `Package.swift`).
+- `swift-carrier-primitives` — the `Carrier` capability protocol that `Tagged: Carrier.\`Protocol\`` unconditionally conforms to (declared in `Package.swift`).
 
 ---
 
