@@ -62,12 +62,12 @@ swift-tagged exposes storage as a `public var`, which is the simplest approach b
 
 | Aspect | swift-tagged | swift-tagged-primitives |
 |--------|-------------|--------------------------|
-| Primary init | `init(rawValue:)` | `init(_ underlying:)` (public, supplied by `Carrier.\`Protocol\``) + `init(_unchecked:)` (package-internal) |
-| Convenience init | `init(_ rawValue)` (positional) | The Carrier-derived `init(_:)` IS the public construction path |
+| Primary init | `init(rawValue:)` | `init(_ underlying:)` (public, supplied by `Carrier.\`Protocol\``) + `init(_unchecked:)` (public bypass init) |
+| Convenience init | `init(_ rawValue)` (positional) | The Carrier-derived `init(_:)` IS the canonical public construction path |
 | `consuming` parameter | No | Yes |
 | `RawRepresentable` | Yes (conforms) | No |
 
-The package-internal `_unchecked:` label is deliberate — it signals that the initializer bypasses domain-specific validation, and its `package` access level prevents external misuse. Domain types declared INSIDE the package use `_unchecked:` directly; external consumers go through the public Carrier-derived `init(_ underlying:)`. swift-tagged's `init(rawValue:)` / `init(_:)` encourages direct construction at all call sites.
+The `_unchecked:` label signals that the initializer bypasses any Carrier-derived validation — the consumer is asserting the value is already suitable. The leading underscore + the explicit `_unchecked` label are sufficient hygiene for this; the access modifier is `public` so legitimate cross-package consumers (notably `Property.View`, which wraps `Tagged<Tag, Ownership.Inout<Base>>` where `Ownership.Inout` is a scoped projection that fundamentally cannot satisfy `Carrier.\`Protocol\``'s consuming init) can construct without resorting to redesign. The canonical path remains the Carrier-derived `init(_:)` for the common case where `Underlying` is itself a Carrier; `_unchecked:` is the escape hatch for the cases that aren't. swift-tagged's `init(rawValue:)` / `init(_:)` doesn't draw this distinction.
 
 The `consuming` ownership annotation enables move-only underlying values and avoids unnecessary copies.
 
