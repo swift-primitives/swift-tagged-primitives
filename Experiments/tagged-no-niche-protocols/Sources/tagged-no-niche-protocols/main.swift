@@ -19,6 +19,7 @@
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
 import Foundation  // for JSONEncoder/JSONDecoder — used at the EXPERIMENT level only,
                    // not by Tagged Primitives main. The package itself remains
                    // Foundation-free; this experiment just exercises Codable
@@ -31,10 +32,10 @@ extension User { typealias ID = Tagged<User, Int> }
 
 // MARK: - (A) CustomStringConvertible covers playground-style display
 
-let userID: User.ID = User.ID(__unchecked: (), 42)
+let userID: User.ID = User.ID(42)
 let displayString = String(describing: userID)  // playground-style display
 precondition(displayString == "42", "CustomStringConvertible covers the playground-display use case")
-precondition(userID.description == "42", "tagged.description forwards to rawValue.description")
+precondition(userID.description == "42", "tagged.description forwards to underlying.description")
 
 print("tagged-no-niche-protocols: (A) CustomStringConvertible (in main) covers the playground-style display use case — String(describing: tagged) and tagged.description both produce '42'.")
 
@@ -43,8 +44,8 @@ print("tagged-no-niche-protocols: (A) CustomStringConvertible (in main) covers t
 // Demonstrate symmetric encode→decode round-trip on Tagged<User, Int>
 // using JSONEncoder / JSONDecoder. No CodingKeyRepresentable needed.
 //
-// EMPIRICAL FINDING: Swift's synthesized Codable on `struct Tagged { var rawValue }`
-// produces a KEYED container `{"rawValue": 99}`, NOT a single-value `99`.
+// EMPIRICAL FINDING: Swift's synthesized Codable on `struct Tagged { var underlying }`
+// produces a KEYED container `{"underlying": 99}`, NOT a single-value `99`.
 // This is because the synthesizer treats every stored property as a key.
 // The encode/decode pair IS symmetric — encode produces keyed, decode
 // expects keyed. Round-trip preserves the value.
@@ -58,7 +59,7 @@ print("tagged-no-niche-protocols: (A) CustomStringConvertible (in main) covers t
 let encoder = JSONEncoder()
 let decoder = JSONDecoder()
 
-let original: User.ID = User.ID(__unchecked: (), 99)
+let original: User.ID = User.ID(99)
 let encoded = try encoder.encode(original)
 let encodedStr = String(decoding: encoded, as: UTF8.self)
 print("tagged-no-niche-protocols: (B) Codable encode produces \(encodedStr) (keyed container — Swift's default synthesis for structs).")
@@ -101,7 +102,7 @@ Empirical findings (all verified):
 - (A) CustomStringConvertible (in main) covers the playground-style display
   use case — CustomPlaygroundDisplayConvertible adds no incremental value
 - (B) Codable conditional handles Tagged-as-value via Swift's default
-  synthesis — encode produces a keyed container ({"rawValue": N}), decode
+  synthesis — encode produces a keyed container ({"underlying": N}), decode
   expects the same shape, round-trip works. The shape is symmetric (encode
   and decode agree on the keyed shape), no CodingKeyRepresentable needed
   for the Tagged-as-value case. (Note: pointfree's double-try fallback

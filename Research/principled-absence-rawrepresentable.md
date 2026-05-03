@@ -34,7 +34,7 @@ Swift Institute's `swift-tagged-primitives` deliberately removes this conformanc
 
 ## Question
 
-Should `Tagged<Tag, RawValue>` conform to `RawRepresentable`? If absent by default, what is the legitimate opt-in path?
+Should `Tagged<Tag, Underlying>` conform to `RawRepresentable`? If absent by default, what is the legitimate opt-in path?
 
 ## Prior art
 
@@ -49,9 +49,9 @@ Should `Tagged<Tag, RawValue>` conform to `RawRepresentable`? If absent by defau
 
 ```swift
 extension Tagged: RawRepresentable {
-    public typealias RawValue = RawValue          // collides with the parametric RawValue
-    public init?(rawValue: RawValue) {            // failable init
-        self.init(__unchecked: (), rawValue)
+    public typealias RawValue = Underlying        // aliases the generic parameter
+    public init?(rawValue: Underlying) {          // failable init
+        self.init(_unchecked: rawValue)
     }
 }
 ```
@@ -64,11 +64,9 @@ extension Tagged: RawRepresentable {
 
 1. **Failable init implies failability semantics that don't apply.** `RawRepresentable.init?(rawValue:)` is failable because raw-representable enums constrain the raw value to a finite set (the enum's cases). `Tagged<Tag, Int>` does not constrain `Int` — every `Int` is a valid raw value. The failability is structurally vestigial; consumers calling `init?(rawValue:)` get an Optional that never returns `nil`, which is misleading API.
 
-2. **`RawRepresentable` constrains `RawValue: Equatable & Hashable` (since Swift 5.5)**. Our `Tagged` admits `RawValue: ~Copyable & ~Escapable` — the `RawRepresentable` conformance would force `RawValue: Copyable` (and Equatable), defeating our `~Copyable` admission for the wide design space we admit.
+2. **`RawRepresentable` constrains `RawValue: Equatable & Hashable` (since Swift 5.5)**. Our `Tagged` admits `Underlying: ~Copyable & ~Escapable` — the `RawRepresentable` conformance would force `RawValue: Copyable` (and Equatable), defeating our `~Copyable` admission for the wide design space we admit.
 
-3. **Name collision**: `Tagged.RawValue` is a generic parameter; `RawRepresentable.RawValue` is an associated type. Using the same name for both is technically legal via `typealias RawValue = RawValue`, but it's a self-referential alias that's confusing in error messages and IDE tooling. The conformance reads as `Tagged.RawValue == Tagged.RawValue`, which is a tautology dressed as a declaration.
-
-4. **Conflates phantom-typing with raw-representation**. The phantom Tag is the discriminator; `RawRepresentable` implies the raw value IS the value (with a type alias for what it is "represented as"). The conformance suggests Tagged is "an enum-like wrapper," when it's actually a phantom-typed wrapper. Consumers reading the protocol-list see misleading framing.
+3. **Conflates phantom-typing with raw-representation**. The phantom Tag is the discriminator; `RawRepresentable` implies the raw value IS the value (with a type alias for what it is "represented as"). The conformance suggests Tagged is "an enum-like wrapper," when it's actually a phantom-typed wrapper. Consumers reading the protocol-list see misleading framing.
 
 ### Option B — Conform via SLI opt-in (originally proposed; empirically blocked)
 
@@ -77,11 +75,11 @@ extension Tagged: RawRepresentable {
 import Tagged_Primitives
 
 extension Tagged: RawRepresentable
-where Tag: ~Copyable & ~Escapable, RawValue: Copyable & Equatable & Escapable {
-    public init?(rawValue: RawValue) {
-        self.init(__unchecked: (), rawValue)
+where Tag: ~Copyable & ~Escapable, Underlying: Copyable & Equatable & Escapable {
+    public typealias RawValue = Underlying
+    public init?(rawValue: Underlying) {
+        self.init(_unchecked: rawValue)
     }
-    // RawValue typealias inherited from the parametric RawValue.
 }
 ```
 
@@ -95,9 +93,9 @@ where Tag: ~Copyable & ~Escapable, RawValue: Copyable & Equatable & Escapable {
 
 Three constraint shapes were tried (see `Experiments/tagged-no-rawrepresentable/reject-test-conformance.swift.txt` for the empirical capture):
 
-1. `Tag: ~Copyable & ~Escapable, RawValue: Copyable & Equatable`
-2. `Tag: ~Copyable & ~Escapable, RawValue: Copyable & Equatable & Escapable`
-3. `Tag: Copyable & Escapable, RawValue: Copyable & Equatable & Escapable`
+1. `Tag: ~Copyable & ~Escapable, Underlying: Copyable & Equatable`
+2. `Tag: ~Copyable & ~Escapable, Underlying: Copyable & Equatable & Escapable`
+3. `Tag: Copyable & Escapable, Underlying: Copyable & Equatable & Escapable`
 
 All three produce the same diagnostic family. The structural blocker: `RawRepresentable` is not `~Escapable`-aware; its `var rawValue: RawValue { get }` requirement implicitly assumes a non-`~Escapable` accessor. Tagged's structural `~Escapable` declaration on the base struct (`public struct Tagged<...>: ~Copyable, ~Escapable`) propagates through the synthesized `rawValue` getter witness regardless of constraint shape on the conformance extension. The conformance is not authorable — not on the main target, not on SLI opt-in, not on any constraint refinement.
 
@@ -123,10 +121,10 @@ struct UserID: RawRepresentable, Equatable {
 
     init?(rawValue: Int) {
         guard rawValue >= 0 else { return nil }     // domain validation here
-        self.storage = Tagged<User, Int>(__unchecked: (), rawValue)
+        self.storage = Tagged<User, Int>(rawValue)
     }
 
-    var rawValue: Int { storage.rawValue }
+    var rawValue: Int { storage.underlying }
 }
 ```
 
@@ -145,7 +143,7 @@ This is the canonical pattern — domain validation belongs at the wrapper level
 | Default safety (avoids misleading semantics in main import) | ✗ | ✓ | ✓ |
 | Stdlib RawRepresentable interop available | ✓ | (would be via SLI) | ✓ (via consumer wrapper) |
 | Preserves `~Copyable` / `~Escapable` admission in main | ✗ | ✓ | ✓ |
-| Avoids name collision with parametric `RawValue` | ✗ | Soft (still aliased) | ✓ |
+| Avoids name collision between `Tagged.Underlying` (generic) and `RawRepresentable.RawValue` (associated) | ✓ (post-rename, no collision) | ✓ | ✓ |
 | Failable-init meaningful (validates domain, not always-succeeds) | ✗ | ✗ | ✓ |
 | **Compiles on Swift 6.3.1** | ✓ | **✗ (empirically blocked)** | ✓ |
 | Consumer friction | None | (would be one import) | One wrapper struct per domain |
@@ -156,11 +154,11 @@ Option A's combined cost (semantic misleading × `~Copyable` blocker × name col
 
 **Status**: DECISION — Option C (Hard absence + consumer wrapper alternative).
 
-`Tagged<Tag, RawValue>: RawRepresentable` is **absent from the main target**, **not authorable in any opt-in form** (including via SLI) due to a structural Swift-level blocker on Swift 6.3.1. Consumers who want stdlib-`RawRepresentable` interop author a domain-specific wrapper struct (canonical pattern verified in the experiment).
+`Tagged<Tag, Underlying>: RawRepresentable` is **absent from the main target**, **not authorable in any opt-in form** (including via SLI) due to a structural Swift-level blocker on Swift 6.3.1. Consumers who want stdlib-`RawRepresentable` interop author a domain-specific wrapper struct (canonical pattern verified in the experiment).
 
 **Soft / Hard classification**: **HARD** absence — not eligible for SLI. The conformance is structurally infeasible regardless of consumer intent.
 
-**Empirical verification**: [`Experiments/tagged-no-rawrepresentable/`](../Experiments/tagged-no-rawrepresentable/) demonstrates (a) the structural absence — three different conformance attempts (varying constraint shape on Tag and RawValue) all fail to compile with the same diagnostic family captured in `reject-test-conformance.swift.txt`; (b) the consumer alternative — a domain-specific `UserID` wrapper struct that owns its own `RawRepresentable` conformance, performs meaningful domain validation (non-negative IDs), forwards storage to `Tagged`, and round-trips through `init?(rawValue:) → rawValue → init?(rawValue:)` cleanly. Stdlib RawRepresentable-constrained APIs work on the consumer wrapper.
+**Empirical verification**: [`Experiments/tagged-no-rawrepresentable/`](../Experiments/tagged-no-rawrepresentable/) demonstrates (a) the structural absence — three different conformance attempts (varying constraint shape on Tag and Underlying) all fail to compile with the same diagnostic family captured in `reject-test-conformance.swift.txt`; (b) the consumer alternative — a domain-specific `UserID` wrapper struct that owns its own `RawRepresentable` conformance, performs meaningful domain validation (non-negative IDs), forwards storage to `Tagged`, and round-trips through `init?(rawValue:) → rawValue → init?(rawValue:)` cleanly. Stdlib RawRepresentable-constrained APIs work on the consumer wrapper.
 
 **Forward-compatibility note**: if a future Swift version makes `RawRepresentable` `~Escapable`-aware (or makes the synthesized witness for stored properties on `~Escapable` types compatible with non-`~`-aware protocols), this rule SHOULD be revisited. The structural blocker is empirically tied to the 6.3.1 toolchain; the rule's content should follow the language.
 

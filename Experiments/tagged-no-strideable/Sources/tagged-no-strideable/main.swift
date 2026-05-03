@@ -20,6 +20,7 @@
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
 
 // MARK: - Domain setup
 
@@ -32,26 +33,27 @@ extension User { typealias ID = Tagged<User, Int> }
 
 extension Tagged: @retroactive Strideable
 where Tag: ~Copyable & ~Escapable,
-      RawValue: Strideable & Comparable & Equatable & Escapable {
-    public func distance(to other: Tagged) -> RawValue.Stride {
-        rawValue.distance(to: other.rawValue)
+      Underlying: Strideable & Comparable & Equatable & Carrier.`Protocol` & Escapable,
+      Underlying.Underlying == Underlying {
+    public func distance(to other: Tagged) -> Underlying.Stride {
+        underlying.distance(to: other.underlying)
     }
-    public func advanced(by n: RawValue.Stride) -> Tagged {
-        Tagged(__unchecked: (), rawValue.advanced(by: n))
+    public func advanced(by n: Underlying.Stride) -> Tagged {
+        Tagged(underlying.advanced(by: n))
     }
 }
 
 // If we reach this point at runtime, the conformance compiled.
 // Demonstrate the consequences:
 
-let userA: User.ID = User.ID(__unchecked: (), 1)
-let userB: User.ID = User.ID(__unchecked: (), 5)
+let userA: User.ID = User.ID(1)
+let userB: User.ID = User.ID(5)
 
 let dist = userA.distance(to: userB)
 precondition(dist == 4, "distance(to:) forwards correctly to Int.distance")
 
 let userC = userA.advanced(by: 10)
-precondition(userC.rawValue == 11, "advanced(by:) forwards correctly to Int.advanced")
+precondition(userC.underlying == 11, "advanced(by:) forwards correctly to Int.advanced")
 
 // Range works — this is the consequence the rationale critiques. Same-domain
 // range is well-typed, but the iteration is just Int-stride wearing User
@@ -59,7 +61,7 @@ precondition(userC.rawValue == 11, "advanced(by:) forwards correctly to Int.adva
 
 var collected: [Int] = []
 for u in userA...userB {
-    collected.append(u.rawValue)
+    collected.append(u.underlying)
 }
 precondition(collected == [1, 2, 3, 4, 5], "Range<User.ID> iteration via Strideable")
 
@@ -74,7 +76,7 @@ print("tagged-no-strideable: Same-domain range iteration works (\(collected)) �
 enum Order {}
 extension Order { typealias ID = Tagged<Order, Int> }
 
-// _ = userA ... Order.ID(__unchecked: (), 5)
+// _ = userA ... Order.ID(5)
 //
 // would fail with: "Binary operator '...' cannot be applied to operands
 // of type 'User.ID' (= Tagged<User, Int>) and 'Order.ID'
@@ -93,9 +95,9 @@ struct Slot: Strideable, Comparable, Hashable {
     private static let validIDs: [Int] = [1, 3, 7, 12, 25]
     let storage: Int
 
-    init?(_ rawValue: Int) {
-        guard Slot.validIDs.contains(rawValue) else { return nil }
-        self.storage = rawValue
+    init?(_ underlying: Int) {
+        guard Slot.validIDs.contains(underlying) else { return nil }
+        self.storage = underlying
     }
 
     static func < (lhs: Slot, rhs: Slot) -> Bool { lhs.storage < rhs.storage }

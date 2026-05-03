@@ -17,14 +17,14 @@ struct `Tagged + Collection Tests` {
 extension `Tagged + Collection Tests`.Unit {
 
     @Test
-    func `startIndex and endIndex forward to RawValue`() {
+    func `startIndex and endIndex forward to Underlying`() {
         let tagged: Tagged<Tag1, [Int]> = [10, 20, 30]
         #expect(tagged.startIndex == 0)
         #expect(tagged.endIndex == 3)
     }
 
     @Test
-    func `subscript forwards to RawValue`() {
+    func `subscript forwards to Underlying`() {
         let tagged: Tagged<Tag1, [Int]> = [10, 20, 30]
         #expect(tagged[0] == 10)
         #expect(tagged[1] == 20)
@@ -32,14 +32,14 @@ extension `Tagged + Collection Tests`.Unit {
     }
 
     @Test
-    func `index after forwards to RawValue`() {
+    func `index after forwards to Underlying`() {
         let tagged: Tagged<Tag1, [Int]> = [10, 20]
         #expect(tagged.index(after: 0) == 1)
         #expect(tagged.index(after: 1) == 2)
     }
 
     @Test
-    func `Tagged conforms to Collection when RawValue conforms`() {
+    func `Tagged conforms to Collection when Underlying conforms`() {
         func _requireCollection<T: Collection>(_: T.Type) {}
         _requireCollection(Tagged<Tag1, [Int]>.self)
         _requireCollection(Tagged<Tag1, String>.self)
@@ -89,7 +89,7 @@ extension `Tagged + Collection Tests`.Performance {
     @Test
     func `subscript access batched`() {
         let elements = Array(0..<1_000)
-        let tagged: Tagged<Tag1, [Int]> = Tagged<Tag1, [Int]>(__unchecked: (), elements)
+        let tagged: Tagged<Tag1, [Int]> = Tagged<Tag1, [Int]>(_unchecked: elements)
         var sum = 0
         for i in 0..<tagged.count {
             sum &+= tagged[i]

@@ -1,8 +1,8 @@
 // Tagged+Literals.swift
-// Opt-in `ExpressibleBy*Literal` conformances for `Tagged<Tag, RawValue>`
-// when `RawValue` conforms. Each conformance forwards the literal init
-// to `RawValue`'s corresponding init, then constructs the Tagged value
-// via `init(__unchecked:_:)`.
+// Opt-in `ExpressibleBy*Literal` conformances for `Tagged<Tag, Underlying>`
+// when `Underlying` conforms. Each conformance forwards the literal init
+// to `Underlying`'s corresponding init, then constructs the Tagged value
+// via `init(_unchecked:)`.
 //
 // All nine literal conformances are bundled in one file: the seven
 // stdlib literal protocols share `@_disfavoredOverload` discipline and
@@ -42,76 +42,76 @@
 // research) remain the safest pattern when the footgun is unacceptable.
 
 extension Tagged: ExpressibleByIntegerLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByIntegerLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByIntegerLiteral {
     /// Constructs a tagged value from an integer literal by forwarding
-    /// to `RawValue(integerLiteral:)`. Marked `@_disfavoredOverload` to
+    /// to `Underlying(integerLiteral:)`. Marked `@_disfavoredOverload` to
     /// keep domain-specific inits ranked higher in resolution.
     @_disfavoredOverload
-    public init(integerLiteral value: RawValue.IntegerLiteralType) {
-        self = .init(__unchecked: (), RawValue(integerLiteral: value))
+    public init(integerLiteral value: Underlying.IntegerLiteralType) {
+        self = .init(_unchecked: Underlying(integerLiteral: value))
     }
 }
 
 extension Tagged: ExpressibleByFloatLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByFloatLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByFloatLiteral {
     /// Constructs a tagged value from a floating-point literal by
-    /// forwarding to `RawValue(floatLiteral:)`.
+    /// forwarding to `Underlying(floatLiteral:)`.
     @_disfavoredOverload
-    public init(floatLiteral value: RawValue.FloatLiteralType) {
-        self.init(__unchecked: (), RawValue(floatLiteral: value))
+    public init(floatLiteral value: Underlying.FloatLiteralType) {
+        self.init(_unchecked: Underlying(floatLiteral: value))
     }
 }
 
 extension Tagged: ExpressibleByUnicodeScalarLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByUnicodeScalarLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByUnicodeScalarLiteral {
     /// Constructs a tagged value from a Unicode-scalar literal by
-    /// forwarding to `RawValue(unicodeScalarLiteral:)`.
+    /// forwarding to `Underlying(unicodeScalarLiteral:)`.
     @_disfavoredOverload
-    public init(unicodeScalarLiteral value: RawValue.UnicodeScalarLiteralType) {
-        self.init(__unchecked: (), RawValue(unicodeScalarLiteral: value))
+    public init(unicodeScalarLiteral value: Underlying.UnicodeScalarLiteralType) {
+        self.init(_unchecked: Underlying(unicodeScalarLiteral: value))
     }
 }
 
 extension Tagged: ExpressibleByExtendedGraphemeClusterLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByExtendedGraphemeClusterLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByExtendedGraphemeClusterLiteral {
     /// Constructs a tagged value from an extended-grapheme-cluster
-    /// literal by forwarding to `RawValue(extendedGraphemeClusterLiteral:)`.
+    /// literal by forwarding to `Underlying(extendedGraphemeClusterLiteral:)`.
     @_disfavoredOverload
-    public init(extendedGraphemeClusterLiteral value: RawValue.ExtendedGraphemeClusterLiteralType) {
-        self.init(__unchecked: (), RawValue(extendedGraphemeClusterLiteral: value))
+    public init(extendedGraphemeClusterLiteral value: Underlying.ExtendedGraphemeClusterLiteralType) {
+        self.init(_unchecked: Underlying(extendedGraphemeClusterLiteral: value))
     }
 }
 
 extension Tagged: ExpressibleByStringLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByStringLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByStringLiteral {
     /// Constructs a tagged value from a string literal by forwarding to
-    /// `RawValue(stringLiteral:)`. Note: in SLI scope,
+    /// `Underlying(stringLiteral:)`. Note: in SLI scope,
     /// `Tagged<Tag, T>("string")` (parenthesized init form) is ambiguous
     /// because of the interaction with `LosslessStringConvertible` —
     /// disambiguate via `Tagged<Tag, T>(String("…"))`.
     @_disfavoredOverload
-    public init(stringLiteral value: RawValue.StringLiteralType) {
-        self.init(__unchecked: (), RawValue(stringLiteral: value))
+    public init(stringLiteral value: Underlying.StringLiteralType) {
+        self.init(_unchecked: Underlying(stringLiteral: value))
     }
 }
 
 extension Tagged: ExpressibleByBooleanLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByBooleanLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByBooleanLiteral {
     /// Constructs a tagged value from a Boolean literal by forwarding
-    /// to `RawValue(booleanLiteral:)`.
+    /// to `Underlying(booleanLiteral:)`.
     @_disfavoredOverload
-    public init(booleanLiteral value: RawValue.BooleanLiteralType) {
-        self.init(__unchecked: (), RawValue(booleanLiteral: value))
+    public init(booleanLiteral value: Underlying.BooleanLiteralType) {
+        self.init(_unchecked: Underlying(booleanLiteral: value))
     }
 }
 
 extension Tagged: ExpressibleByStringInterpolation
-where Tag: ~Copyable, RawValue: ExpressibleByStringInterpolation {
+where Tag: ~Copyable, Underlying: ExpressibleByStringInterpolation {
     /// Constructs a tagged value from a string interpolation by
-    /// forwarding to `RawValue(stringInterpolation:)`.
+    /// forwarding to `Underlying(stringInterpolation:)`.
     @_disfavoredOverload
-    public init(stringInterpolation: RawValue.StringInterpolation) {
-        self.init(__unchecked: (), RawValue(stringInterpolation: stringInterpolation))
+    public init(stringInterpolation: Underlying.StringInterpolation) {
+        self.init(_unchecked: Underlying(stringInterpolation: stringInterpolation))
     }
 }
 
@@ -130,12 +130,12 @@ where Tag: ~Copyable, RawValue: ExpressibleByStringInterpolation {
 // Dictionary-shape (variadic of (Key, Value) tuples). The
 // `RangeReplaceableCollection`-constrained safe path (previously
 // shipped, 2026-04-30 v1.1.0 of the principled-absence doc) covered
-// only Array-family RawValues without `Set`, `Dictionary`, or other
+// only Array-family Underlyings without `Set`, `Dictionary`, or other
 // non-RRC types. Per user direction 2026-04-30, the carve-out covers
 // the asymmetry uniformly.
 //
 // The bitcast is strictly a function-type reinterpretation: it converts
-// `(Element...) -> RawValue` to `([Element]) -> RawValue`. Both function
+// `(Element...) -> Underlying` to `([Element]) -> Underlying`. Both function
 // types have identical ABI for the variadic-as-array case (Swift's
 // variadic is itself an Array under the hood). The conversion is safe
 // in practice; it requires `unsafeBitCast` because Swift's type system
@@ -149,36 +149,36 @@ where Tag: ~Copyable, RawValue: ExpressibleByStringInterpolation {
 //   carve-out adopts verbatim (with the conformance constraint added).
 
 extension Tagged: ExpressibleByArrayLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByArrayLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByArrayLiteral {
     /// Constructs a tagged value from an array literal by reinterpreting
-    /// `RawValue`'s variadic `init(arrayLiteral:)` as an array-typed
+    /// `Underlying`'s variadic `init(arrayLiteral:)` as an array-typed
     /// init via `unsafeBitCast`. **`[MEM-SAFE-001]` carve-out site #1
     /// of 2** — see the file's MARK block for provenance and ABI
     /// rationale; see `Research/principled-absence-array-dict-literal.md`
     /// v1.2.0 for the carve-out's bounded scope.
     @_disfavoredOverload
-    public init(arrayLiteral elements: RawValue.ArrayLiteralElement...) {
+    public init(arrayLiteral elements: Underlying.ArrayLiteralElement...) {
         let f = unsafe unsafeBitCast(
-            RawValue.init(arrayLiteral:) as (RawValue.ArrayLiteralElement...) -> RawValue,
-            to: (([RawValue.ArrayLiteralElement]) -> RawValue).self
+            Underlying.init(arrayLiteral:) as (Underlying.ArrayLiteralElement...) -> Underlying,
+            to: (([Underlying.ArrayLiteralElement]) -> Underlying).self
         )
-        self.init(__unchecked: (), f(elements))
+        self.init(_unchecked: f(elements))
     }
 }
 
 extension Tagged: ExpressibleByDictionaryLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByDictionaryLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByDictionaryLiteral {
     /// Constructs a tagged value from a dictionary literal by
-    /// reinterpreting `RawValue`'s variadic `init(dictionaryLiteral:)`
+    /// reinterpreting `Underlying`'s variadic `init(dictionaryLiteral:)`
     /// as a tuple-array-typed init via `unsafeBitCast`. **`[MEM-SAFE-001]`
     /// carve-out site #2 of 2** — see the file's MARK block for
     /// provenance and ABI rationale.
     @_disfavoredOverload
-    public init(dictionaryLiteral elements: (RawValue.Key, RawValue.Value)...) {
+    public init(dictionaryLiteral elements: (Underlying.Key, Underlying.Value)...) {
         let f = unsafe unsafeBitCast(
-            RawValue.init(dictionaryLiteral:) as ((RawValue.Key, RawValue.Value)...) -> RawValue,
-            to: (([(RawValue.Key, RawValue.Value)]) -> RawValue).self
+            Underlying.init(dictionaryLiteral:) as ((Underlying.Key, Underlying.Value)...) -> Underlying,
+            to: (([(Underlying.Key, Underlying.Value)]) -> Underlying).self
         )
-        self.init(__unchecked: (), f(elements))
+        self.init(_unchecked: f(elements))
     }
 }

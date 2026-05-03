@@ -136,7 +136,7 @@ improvements (`Strideable`, production literal, `Time.Offset` construction) is
 
 One seemingly attractive escape hatch: ship tagged-primitives with no blanket
 literal conformance, let each consumer package add
-`extension Tagged: ExpressibleByIntegerLiteral where Tag == MyTag, RawValue == Int`
+`extension Tagged: ExpressibleByIntegerLiteral where Tag == MyTag, Underlying == Int`
 for its own types. This is structurally rejected by Swift.
 
 Experiment `tagged-literal-consumer-opt-in` — verified 2026-04-21:
@@ -193,17 +193,17 @@ reinterpretation) are semantically non-obvious and match Swift stdlib labeling
 convention (`Int(truncatingIfNeeded:)`, `Int(bitPattern:)`). They are not labels
 for their own sake.
 
-#### Option C — Marker protocol on RawValue (Tagged.LiteralSafe)
+#### Option C — Marker protocol on Underlying (Tagged.LiteralSafe)
 
-Gate the blanket on a marker protocol that RawValues opt into. Int, UInt32,
+Gate the blanket on a marker protocol that Underlyings opt into. Int, UInt32,
 Double opt in; Ordinal, Cardinal, Memory.Address do not.
 
 | Criterion | Assessment |
 |---|---|
-| Production literals on Tagged | Yes, for LiteralSafe RawValues |
+| Production literals on Tagged | Yes, for LiteralSafe Underlyings |
 | Footgun risk | None — Ordinal-backed Tagged types cannot accept literals, chain blocked at step 3 |
 | Strideable compatible | Yes |
-| Consumer cost | Extra API surface on Tagged (`TaggedLiteralSafe` protocol), conformance declarations for each RawValue, loss of literal ergonomics for Ordinal-backed typealiases |
+| Consumer cost | Extra API surface on Tagged (`TaggedLiteralSafe` protocol), conformance declarations for each Underlying, loss of literal ergonomics for Ordinal-backed typealiases |
 | Per-tag opt-in possible? | **No** — verified by experiment. Swift's single-conformance rule prevents per-tag re-enabling |
 
 Experimentally verified working for the main mechanism; verified impossible
@@ -239,7 +239,7 @@ Independent of the literal question, the fresh examination surfaced that
 comment states conforming types "wrap or represent a `Cardinal` value and can
 **round-trip** through it" (Cardinal.Protocol.swift:12). `Memory.Shift` is
 `UInt8`-backed and the `init(_ cardinal: Cardinal)` narrows via
-`UInt8(cardinal.rawValue)` (traps on overflow). Any `Cardinal > 255` fails the
+`UInt8(cardinal.underlying)` (traps on overflow). Any `Cardinal > 255` fails the
 round-trip contract.
 
 This is an architectural smell regardless of what we do with literals. The fix
@@ -278,7 +278,7 @@ Each option gives up at least one. Options A and B survive the rejection of
 | Strideable compatible | Yes | Yes | Yes | Yes | Yes |
 | Convention decay risk | N/A | Real | None | None | N/A |
 | API surface cost | None | 3 labels | +marker protocol | +structs | N/A |
-| Convenience at consumer sites | Poor | Excellent | Excellent for opt-in RawValues | Excellent for wrapped types | N/A |
+| Convenience at consumer sites | Poor | Excellent | Excellent for opt-in Underlyings | Excellent for wrapped types | N/A |
 | Rejected by user | No | Pending | Yes | Yes | N/A (empirically refuted) |
 
 ## Constraints

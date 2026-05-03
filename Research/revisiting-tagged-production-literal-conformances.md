@@ -110,31 +110,31 @@ The v2.0 decision was **reactive** — it blamed the literal conformance because
 **Cons**:
 - 83+ Tagged typealiases remain ergonomically impaired in production
 - `Time.Offset` requires convenience init wrapping `Int` → `Tagged` internally
-- `.init(0)` or `__unchecked:` for default arguments remains awkward
+- `.init(0)` or `_unchecked:` for default arguments remains awkward
 - Diverges from `Scale` and `Interval.Unit` which have production literals
 
 ### Option C: Protocol-Gated Production Literal Conformance
 
-**Approach**: Add literal conformance only for specific RawValue types that don't participate in cross-domain init chains.
+**Approach**: Add literal conformance only for specific Underlying types that don't participate in cross-domain init chains.
 
 For example, `Tagged<Tag, Int>` and `Tagged<Tag, Double>` are safe because:
 - `Int`-backed Tagged types (Time.Offset components, Kernel IDs) don't have cross-domain init chains
 - `Double`-backed Tagged types (coordinates, displacements, angles) have `Spatial`-gated inits, not cross-domain ordinal inits
 - The footgun only fires with `Ordinal`-backed types that have cross-domain inits
 
-However, `Ordinal: ExpressibleByIntegerLiteral` already exists in production (ordinal-primitives), so `Tagged<Tag, Ordinal>` would still gain the conformance through the blanket `RawValue: ExpressibleByIntegerLiteral` constraint.
+However, `Ordinal: ExpressibleByIntegerLiteral` already exists in production (ordinal-primitives), so `Tagged<Tag, Ordinal>` would still gain the conformance through the blanket `Underlying: ExpressibleByIntegerLiteral` constraint.
 
-**Variant C2**: Gate on `RawValue` NOT being `Ordinal`:
+**Variant C2**: Gate on `Underlying` NOT being `Ordinal`:
 ```swift
 // Not expressible in Swift's type system — can't do negative constraints
 ```
 
-This is not viable. Swift doesn't support `where RawValue != Ordinal` constraints.
+This is not viable. Swift doesn't support `where Underlying != Ordinal` constraints.
 
 **Variant C3**: Gate on a marker protocol:
 ```swift
 extension Tagged: ExpressibleByIntegerLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByIntegerLiteral & Tagged.LiteralSafe { ... }
+where Tag: ~Copyable, Underlying: ExpressibleByIntegerLiteral & Tagged.LiteralSafe { ... }
 ```
 
 Then `Int`, `Double`, etc. conform to `LiteralSafe` but `Ordinal` does not. However, this introduces a marker protocol — conflicting with ecosystem conventions.
@@ -157,7 +157,7 @@ Then `Int`, `Double`, etc. conform to `LiteralSafe` but `Ordinal` does not. Howe
 
 1. The `byte:` label fix should be applied **regardless** of the literal conformance decision — the unlabeled cross-domain init is a latent bug even without literals
 2. `Ordinal: ExpressibleByIntegerLiteral` exists in production and cannot be removed (it's used across the ecosystem for ordinal construction)
-3. Swift does not support negative type constraints (`where RawValue != Ordinal`)
+3. Swift does not support negative type constraints (`where Underlying != Ordinal`)
 4. The single conditional conformance slot concern (from v2.0 Option B) applies — Swift doesn't allow multiple conditional conformances to the same protocol with different constraints
 
 ### Critical Finding: Unlabeled Inits Are the Canonical Convention
@@ -183,7 +183,7 @@ These are all unlabeled, all canonical, and all would become footgun vectors if 
 
 ### Revised Assessment: Identity-Numeric Safety
 
-The v2.0 decision was based on the premise that blanket `ExpressibleByIntegerLiteral` on `Tagged` + unlabeled cross-domain inits = silent wrong results. This is correct for **non-identity** transformations (e.g., Bit.Index ×8 scaling). But it was overly broad — the vast majority of cross-domain inits (6 of 9) are **identity-numeric**, preserving the raw value while changing the semantic domain.
+The v2.0 decision was based on the premise that blanket `ExpressibleByIntegerLiteral` on `Tagged` + unlabeled cross-domain inits = silent wrong results. This is correct for **non-identity** transformations (e.g., Bit.Index ×8 scaling). But it was overly broad — the vast majority of cross-domain inits (6 of 9) are **identity-numeric**, preserving the underlying value while changing the semantic domain.
 
 **Key insight**: Identity-numeric cross-domain inits are VALUE-SAFE even under wrong type inference paths.
 
@@ -202,7 +202,7 @@ The type inference path is unexpected (went through ordinal instead of directly)
 
 | Risk | Assessment |
 |------|-----------|
-| Wrong values from identity-numeric inference | **Impossible** — identity preserves raw value by definition |
+| Wrong values from identity-numeric inference | **Impossible** — identity preserves underlying value by definition |
 | Wrong values from non-identity inference | **Eliminated** — all 3 non-identity inits labeled |
 | Throwing inits as footgun vectors | **Safe** — throwing inits can't be matched by non-throwing `.map(Type.init)` |
 | Future unlabeled non-identity inits | **Convention-enforced** — "unlabeled init MUST preserve numeric identity" |
@@ -219,7 +219,7 @@ This changes the structural incompatibility finding. The ecosystem convention of
 
 **Rationale** (v2.0 of this document, supersedes v1.0):
 1. The confirmed crash (Bit.Index ×8) was caused by a non-identity transformation, not by literal conformance per se
-2. All remaining unlabeled cross-domain inits are identity-numeric — they preserve raw values and cannot produce wrong results even under unexpected type inference
+2. All remaining unlabeled cross-domain inits are identity-numeric — they preserve underlying values and cannot produce wrong results even under unexpected type inference
 3. Labeling the 3 non-identity inits eliminates the entire footgun class with near-zero migration cost (~10 call sites)
 4. Production literal conformance restores ergonomic construction for 83+ Tagged typealiases
 5. The convention "unlabeled init MUST preserve numeric identity" is enforceable and prevents future regressions

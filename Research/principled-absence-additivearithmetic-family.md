@@ -13,17 +13,17 @@ tier: 1
 
 `pointfreeco/swift-tagged` declares conditional conformances to the entire stdlib arithmetic stack:
 
-- `Tagged: AdditiveArithmetic where RawValue: AdditiveArithmetic`
-- `Tagged: Numeric where RawValue: Numeric`
-- `Tagged: SignedNumeric where RawValue: SignedNumeric`
-- `Tagged: BinaryInteger where RawValue: BinaryInteger`
-- `Tagged: BinaryFloatingPoint where RawValue: BinaryFloatingPoint` (and `FloatingPoint`)
+- `Tagged: AdditiveArithmetic where Underlying: AdditiveArithmetic`
+- `Tagged: Numeric where Underlying: Numeric`
+- `Tagged: SignedNumeric where Underlying: SignedNumeric`
+- `Tagged: BinaryInteger where Underlying: BinaryInteger`
+- `Tagged: BinaryFloatingPoint where Underlying: BinaryFloatingPoint` (and `FloatingPoint`)
 
-Each conformance forwards operators (`+`, `-`, `*`, `/`, `%`, etc.) and arithmetic predicates to the underlying RawValue.
+Each conformance forwards operators (`+`, `-`, `*`, `/`, `%`, etc.) and arithmetic predicates to the underlying Underlying.
 
-Swift Institute's `swift-tagged-primitives` deliberately removes all of these. The argument is that arithmetic on phantom-typed wrappers must be a **per-domain decision**, not a blanket forwarding from the raw value:
+Swift Institute's `swift-tagged-primitives` deliberately removes all of these. The argument is that arithmetic on phantom-typed wrappers must be a **per-domain decision**, not a blanket forwarding from the underlying value:
 
-> _"If `Tagged<Tag, Int>` conforms to `Numeric`, then `Index<Graph> + 5` compiles — `5` resolves to `Index<Graph>(__unchecked: (), 5)` via the chain, and `+` is forwarded to `Int.+`. The consumer is now doing index arithmetic with a literal that bears no domain meaning. The wrapper was supposed to make this hard."_
+> _"If `Tagged<Tag, Int>` conforms to `Numeric`, then `Index<Graph> + 5` compiles — `5` resolves to `Index<Graph>(_unchecked: 5)` via the chain, and `+` is forwarded to `Int.+`. The consumer is now doing index arithmetic with a literal that bears no domain meaning. The wrapper was supposed to make this hard."_
 
 Tagged's lack of operator forwarding is documented as a feature in [`Research/_Package-Insights.md`](./_Package-Insights.md) §"Tagged's Lack of Operator Forwarding Is a Feature."
 
@@ -38,7 +38,7 @@ This document treats the entire arithmetic family in one place because:
 
 ## Question
 
-Should `Tagged<Tag, RawValue>` conform to the arithmetic protocol family (when `RawValue` does)? If absent by default, what is the legitimate opt-in path, and is the conformance even authorable on Swift 6.3.1?
+Should `Tagged<Tag, Underlying>` conform to the arithmetic protocol family (when `Underlying` does)? If absent by default, what is the legitimate opt-in path, and is the conformance even authorable on Swift 6.3.1?
 
 ## Prior art
 
@@ -52,13 +52,13 @@ Should `Tagged<Tag, RawValue>` conform to the arithmetic protocol family (when `
 ### Option A — Conform unconditionally (pointfreeco pattern)
 
 ```swift
-extension Tagged: AdditiveArithmetic where RawValue: AdditiveArithmetic {
-    public static var zero: Tagged { Tagged(__unchecked: (), .zero) }
+extension Tagged: AdditiveArithmetic where Underlying: AdditiveArithmetic {
+    public static var zero: Tagged { Tagged(_unchecked: .zero) }
     public static func + (lhs: Tagged, rhs: Tagged) -> Tagged {
-        Tagged(__unchecked: (), lhs.rawValue + rhs.rawValue)
+        Tagged(_unchecked: lhs.underlying + rhs.underlying)
     }
     public static func - (lhs: Tagged, rhs: Tagged) -> Tagged {
-        Tagged(__unchecked: (), lhs.rawValue - rhs.rawValue)
+        Tagged(_unchecked: lhs.underlying - rhs.underlying)
     }
 }
 ```
@@ -72,20 +72,20 @@ extension Tagged: AdditiveArithmetic where RawValue: AdditiveArithmetic {
 **Cons**:
 1. **Domain-blind arithmetic**. A `Tagged<User, Int>` representing a user ID gets `*`, `/`, `+`, `-`, etc. Multiplying user IDs by integers, dividing them, taking magnitude — none of these has meaningful domain semantics. The wrapper makes them syntactically available; the *domain* never authorized them.
 
-2. **Cross-typed-wrapper arithmetic via shared RawValue + phantom Tag erosion**. `Tagged<User, Int> + Tagged<User, Int>` is not a defensible operation domain-wise — adding two user IDs produces something nonsensical, but the wrapper's `+` happily computes `Int + Int` without question. The sum has the same User, so the type-system doesn't catch the misuse.
+2. **Cross-typed-wrapper arithmetic via shared Underlying + phantom Tag erosion**. `Tagged<User, Int> + Tagged<User, Int>` is not a defensible operation domain-wise — adding two user IDs produces something nonsensical, but the wrapper's `+` happily computes `Int + Int` without question. The sum has the same User, so the type-system doesn't catch the misuse.
 
 3. **Compounds with literal conformances** (see [`tagged-literal-conformances-fresh-perspective.md`](./tagged-literal-conformances-fresh-perspective.md)): once Tagged is `AdditiveArithmetic` and literals resolve to `Tagged<Tag, X>`, `tagged * 5`, `tagged - 1`, `Tagged.zero + 10` all work. Each of these compiles to `Int * Int`, `Int - Int`, `Int + Int` — the user is doing raw-Int arithmetic on what they thought was a domain-typed value.
 
-4. **Domains that DO have meaningful arithmetic should author it per-domain**. `Cardinal: AdditiveArithmetic` is correct (counts add to counts). `Index<Element>` should NOT have AdditiveArithmetic blanket — index arithmetic is conditional on the collection layout, not on the raw value's Numeric capability. The blanket conformance fires for the wrong cases.
+4. **Domains that DO have meaningful arithmetic should author it per-domain**. `Cardinal: AdditiveArithmetic` is correct (counts add to counts). `Index<Element>` should NOT have AdditiveArithmetic blanket — index arithmetic is conditional on the collection layout, not on the underlying value's Numeric capability. The blanket conformance fires for the wrong cases.
 
 ### Option B — SLI opt-in
 
 ```swift
 extension Tagged: AdditiveArithmetic
-where Tag: ~Copyable & ~Escapable, RawValue: AdditiveArithmetic & Escapable {
-    public static var zero: Tagged { Tagged(__unchecked: (), .zero) }
-    public static func + (lhs: Tagged, rhs: Tagged) -> Tagged { Tagged(__unchecked: (), lhs.rawValue + rhs.rawValue) }
-    public static func - (lhs: Tagged, rhs: Tagged) -> Tagged { Tagged(__unchecked: (), lhs.rawValue - rhs.rawValue) }
+where Tag: ~Copyable & ~Escapable, Underlying: AdditiveArithmetic & Escapable {
+    public static var zero: Tagged { Tagged(_unchecked: .zero) }
+    public static func + (lhs: Tagged, rhs: Tagged) -> Tagged { Tagged(_unchecked: lhs.underlying + rhs.underlying) }
+    public static func - (lhs: Tagged, rhs: Tagged) -> Tagged { Tagged(_unchecked: lhs.underlying - rhs.underlying) }
 }
 ```
 

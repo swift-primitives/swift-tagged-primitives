@@ -1,6 +1,7 @@
 import Testing
 @testable import Tagged_Primitives
 import Tagged_Primitives_Standard_Library_Integration
+import Tagged_Primitives_Test_Support
 
 private enum Tag1 {}
 
@@ -17,7 +18,7 @@ struct `Tagged + Sequence Tests` {
 extension `Tagged + Sequence Tests`.Unit {
 
     @Test
-    func `makeIterator forwards to RawValue`() {
+    func `makeIterator forwards to Underlying`() {
         let tagged: Tagged<Tag1, [Int]> = [1, 2, 3]
         var iter = tagged.makeIterator()
         #expect(iter.next() == 1)
@@ -27,7 +28,7 @@ extension `Tagged + Sequence Tests`.Unit {
     }
 
     @Test
-    func `Tagged conforms to Sequence when RawValue conforms`() {
+    func `Tagged conforms to Sequence when Underlying conforms`() {
         func _requireSequence<T: Sequence>(_: T.Type) {}
         _requireSequence(Tagged<Tag1, [Int]>.self)
         _requireSequence(Tagged<Tag1, Set<Int>>.self)
@@ -48,12 +49,12 @@ extension `Tagged + Sequence Tests`.`Edge Case` {
     }
 
     @Test
-    func `for-in produces same elements as rawValue iteration`() {
+    func `for-in produces same elements as underlying iteration`() {
         let tagged: Tagged<Tag1, [Int]> = [10, 20, 30]
         var viaTagged: [Int] = []
         for x in tagged { viaTagged.append(x) }
         var viaRaw: [Int] = []
-        for x in tagged.rawValue { viaRaw.append(x) }
+        for x in tagged.underlying { viaRaw.append(x) }
         #expect(viaTagged == viaRaw)
     }
 }
@@ -83,7 +84,7 @@ extension `Tagged + Sequence Tests`.Performance {
     @Test
     func `iteration batched`() {
         let elements = Array(0..<1_000)
-        let tagged: Tagged<Tag1, [Int]> = Tagged<Tag1, [Int]>(__unchecked: (), elements)
+        let tagged: Tagged<Tag1, [Int]> = Tagged<Tag1, [Int]>(_unchecked: elements)
         var sum = 0
         for x in tagged { sum &+= x }
         #expect(sum == elements.reduce(0, &+))

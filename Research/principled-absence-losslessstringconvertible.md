@@ -11,11 +11,11 @@ tier: 1
 
 ## Context
 
-`pointfreeco/swift-tagged` declares `Tagged<Tag, RawValue>: LosslessStringConvertible where RawValue: LosslessStringConvertible`, with the `init?(_ description: String)` failable init forwarding to `RawValue.init?(_:)` and `description` inherited from the unconditional `CustomStringConvertible` conformance.
+`pointfreeco/swift-tagged` declares `Tagged<Tag, Underlying>: LosslessStringConvertible where Underlying: LosslessStringConvertible`, with the `init?(_ description: String)` failable init forwarding to `Underlying.init?(_:)` and `description` inherited from the unconditional `CustomStringConvertible` conformance.
 
 `LosslessStringConvertible` requires a *round-trip guarantee*: for any value `v`, `T(v.description) == v`. This guarantee is the protocol's defining contract.
 
-Swift Institute's `swift-tagged-primitives` deliberately removes this conformance. The argument is that the round-trip is **lossy from the Tagged perspective**: the `description` only encodes `RawValue.description`, not the phantom Tag. A `Tagged<User, Int>(__unchecked: (), 42)` has description `"42"`, identical to `Tagged<Order, Int>(__unchecked: (), 42)`'s description. The round-trip `Tagged(description) → description → Tagged(description)` cannot distinguish which tag was originally on the value because the tag isn't in the string. The *inhabitable* contract is "round-trip preserves the raw value"; the *claimed* contract is "round-trip preserves the tagged value." These are different.
+Swift Institute's `swift-tagged-primitives` deliberately removes this conformance. The argument is that the round-trip is **lossy from the Tagged perspective**: the `description` only encodes `Underlying.description`, not the phantom Tag. A `Tagged<User, Int>(_unchecked: 42)` has description `"42"`, identical to `Tagged<Order, Int>(_unchecked: 42)`'s description. The round-trip `Tagged(description) → description → Tagged(description)` cannot distinguish which tag was originally on the value because the tag isn't in the string. The *inhabitable* contract is "round-trip preserves the underlying value"; the *claimed* contract is "round-trip preserves the tagged value." These are different.
 
 This document establishes the rationale and empirically classifies the absence.
 
@@ -25,7 +25,7 @@ This document establishes the rationale and empirically classifies the absence.
 
 ## Question
 
-Should `Tagged<Tag, RawValue>` conform to `LosslessStringConvertible` (when `RawValue: LosslessStringConvertible`)? If absent by default, what is the legitimate opt-in path, and is the conformance even authorable on Swift 6.3.1?
+Should `Tagged<Tag, Underlying>` conform to `LosslessStringConvertible` (when `Underlying: LosslessStringConvertible`)? If absent by default, what is the legitimate opt-in path, and is the conformance even authorable on Swift 6.3.1?
 
 ## Prior art
 
@@ -39,10 +39,10 @@ Should `Tagged<Tag, RawValue>` conform to `LosslessStringConvertible` (when `Raw
 
 ```swift
 extension Tagged: LosslessStringConvertible
-where RawValue: LosslessStringConvertible {
+where Underlying: LosslessStringConvertible {
     public init?(_ description: String) {
-        guard let rawValue = RawValue(description) else { return nil }
-        self.init(__unchecked: (), rawValue)
+        guard let underlying = Underlying(description) else { return nil }
+        self.init(_unchecked: underlying)
     }
 }
 // description inherited from CustomStringConvertible.
@@ -53,7 +53,7 @@ where RawValue: LosslessStringConvertible {
 - Familiar `init?(_:)` failable-init pattern.
 
 **Cons**:
-1. **Round-trip is lossy from Tagged's perspective**. Two Tagged values with the same RawValue but different phantom Tags produce identical descriptions; the round-trip cannot recover the original tag. The protocol contract claims more than the type can deliver.
+1. **Round-trip is lossy from Tagged's perspective**. Two Tagged values with the same Underlying but different phantom Tags produce identical descriptions; the round-trip cannot recover the original tag. The protocol contract claims more than the type can deliver.
 2. **Misleads about the protocol's own claim**. LosslessStringConvertible's documented invariant is `T(v.description) == v` for all `v`. For Tagged, this holds within a single Tag (because the Tag is part of the type, so `T == Tagged<User, Int>` and the round-trip stays within that type), but the *stored content* of the description doesn't carry the Tag — so a consumer who serializes via description, transmits it, and reconstitutes via init?(_) loses the Tag if the receiving side picks the wrong Tagged type.
 3. **Reactivates the literal-conformance footgun in a different shape**. With unconditional `LosslessStringConvertible`, `String → Tagged<Tag, X>` is now an "ambient" conversion, available through any `init?(_:)` that takes String. Combined with literal conformances, this expands the overload-resolution surface in ways that mirror the Strideable footgun reactivation.
 
@@ -62,10 +62,10 @@ where RawValue: LosslessStringConvertible {
 ```swift
 // In Sources/Tagged Primitives Standard Library Integration/Tagged+LosslessStringConvertible.swift
 extension Tagged: LosslessStringConvertible
-where Tag: ~Copyable & ~Escapable, RawValue: LosslessStringConvertible & Escapable {
+where Tag: ~Copyable & ~Escapable, Underlying: LosslessStringConvertible & Escapable {
     public init?(_ description: String) {
-        guard let rawValue = RawValue(description) else { return nil }
-        self.init(__unchecked: (), rawValue)
+        guard let underlying = Underlying(description) else { return nil }
+        self.init(_unchecked: underlying)
     }
 }
 ```
@@ -86,9 +86,9 @@ struct UserID: LosslessStringConvertible {
     let storage: Tagged<User, Int>
     init?(_ description: String) {
         guard let raw = Int(description) else { return nil }
-        self.storage = Tagged<User, Int>(__unchecked: (), raw)
+        self.storage = Tagged<User, Int>(_unchecked: raw)
     }
-    var description: String { String(storage.rawValue) }
+    var description: String { String(storage.underlying) }
 }
 ```
 

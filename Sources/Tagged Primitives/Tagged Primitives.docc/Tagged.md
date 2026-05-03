@@ -9,9 +9,10 @@ A value wrapped with a compile-time phantom type tag.
 
 ## Overview
 
-`Tagged<Tag, RawValue>` provides zero-cost type safety by wrapping a raw
-value with a phantom `Tag` parameter that exists only at compile time. The
-tag is always a meaningful domain type — the domain *is* the discriminator:
+`Tagged<Tag, Underlying>` provides zero-cost type safety by wrapping an
+underlying value with a phantom `Tag` parameter that exists only at compile
+time. The tag is always a meaningful domain type — the domain *is* the
+discriminator:
 
 ```swift
 import Tagged_Primitives
@@ -44,7 +45,7 @@ single-constructor type with one phantom index.
 
 ### Operator Non-Forwarding
 
-`Tagged` deliberately does not forward operators from `RawValue`. This is
+`Tagged` deliberately does not forward operators from `Underlying`. This is
 a type safety feature, not a limitation.
 
 If operators forwarded automatically, `Index<Graph> + Index<Bit>.Count`
@@ -59,7 +60,7 @@ import Tagged_Primitives
 import Ordinal_Primitives
 import Cardinal_Primitives
 
-extension Tagged where RawValue == Ordinal, Tag: ~Copyable {
+extension Tagged where Underlying == Ordinal, Tag: ~Copyable {
     static func + (lhs: Self, rhs: Tagged<Tag, Cardinal>) -> Self { ... }
 }
 ```
@@ -71,9 +72,9 @@ operations are permitted.
 
 `Tagged` supports two type-changing operations:
 
-- ``Tagged/map(_:)-7mqjt`` transforms the raw value while preserving
+- ``Tagged/map(_:)-7mqjt`` transforms the underlying value while preserving
   the tag: `Tagged<Tag, V> → Tagged<Tag, W>`.
-- ``Tagged/retag(_:)-e9ql`` changes the tag while preserving the raw
+- ``Tagged/retag(_:)-e9ql`` changes the tag while preserving the underlying
   value: `Tagged<A, V> → Tagged<B, V>`.
 
 `retag` is a phantom coercion — it changes only the type-level tag with
@@ -85,7 +86,7 @@ practice, the optimizer reliably eliminates the wrapper in release builds.
 
 ### Noncopyable Support
 
-`Tagged<Tag: ~Copyable, RawValue: ~Copyable>` supports noncopyable
+`Tagged<Tag: ~Copyable, Underlying: ~Copyable>` supports noncopyable
 (affine) types in both the tag and value positions. The combination is
 uncommon in phantom-type implementations elsewhere: Haskell has
 no move semantics in its base type system, Rust's `PhantomData` requires
@@ -123,19 +124,19 @@ mitigation for operator forwarding.
 
 ## Experiments
 
-- [tagged-noncopyable-rawvalue](../../Experiments/tagged-noncopyable-rawvalue/) — Verify Tagged can support ~Copyable RawValue. Status: CONFIRMED.
-- [tagged-zero-cost-codegen](../../Experiments/tagged-zero-cost-codegen/) — Verify Tagged produces identical codegen to raw values at -O. Status: CONFIRMED.
+- [tagged-noncopyable-rawvalue](../../Experiments/tagged-noncopyable-rawvalue/) — Verify Tagged can support ~Copyable Underlying. Status: CONFIRMED.
+- [tagged-zero-cost-codegen](../../Experiments/tagged-zero-cost-codegen/) — Verify Tagged produces identical codegen to underlying values at -O. Status: CONFIRMED.
 - [tagged-literal-negative-ordinal](../../Experiments/tagged-literal-negative-ordinal/) — Verify UInt-backed Tagged types reject negative literals at compile time. Status: CONFIRMED.
 
 ## Topics
 
-### Creating a Tagged Value
+### Constructing and accessing
 
-- ``Tagged/init(__unchecked:_:)``
+External construction and read-access flow through `Carrier.\`Protocol\``
+(when `Underlying: Carrier.\`Protocol\``):
 
-### Accessing the Raw Value
-
-- ``Tagged/rawValue``
+- `Tagged.init(_ underlying:)` — public, supplied by the Carrier conformance
+- `Tagged.underlying` — public, supplied by the Carrier conformance
 
 ### Transforming
 

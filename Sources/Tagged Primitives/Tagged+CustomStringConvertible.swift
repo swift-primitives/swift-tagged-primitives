@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-extension Tagged: CustomStringConvertible where Tag: ~Copyable & ~Escapable, RawValue: CustomStringConvertible & Escapable {
+extension Tagged: CustomStringConvertible where Tag: ~Copyable & ~Escapable, Underlying: CustomStringConvertible & Escapable {
     @inlinable
-    public var description: String { rawValue.description }
+    public var description: String { _storage.description }
 }

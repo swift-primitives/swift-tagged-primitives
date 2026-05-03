@@ -1,25 +1,25 @@
 // MARK: - Experiment: Tagged Zero-Cost Codegen
 //
-// Purpose: Verify that Tagged<Tag, RawValue> produces identical machine code
-//          to using RawValue directly. The "zero-cost" claim means:
+// Purpose: Verify that Tagged<Tag, Underlying> produces identical machine code
+//          to using Underlying directly. The "zero-cost" claim means:
 //
-//   1. init(__unchecked:_:) compiles to a no-op (value is already in register)
-//   2. rawValue access compiles to a no-op (no indirection)
+//   1. init(__unchecked:) compiles to a no-op (value is already in register)
+//   2. underlying access compiles to a no-op (no indirection)
 //   3. retag compiles to a no-op (same bits, different type)
 //   4. Equatable/Comparable/Hashable delegate directly — no wrapper overhead
 //   5. map with identity closure compiles to a no-op
 //   6. SLI literal inits (7 stdlib protocols) compile to a no-op beyond the
-//      RawValue's own literal-init cost.
+//      Underlying's own literal-init cost.
 //   7. SLI bitcast inits (ExpressibleByArrayLiteral / ExpressibleByDictionaryLiteral
 //      via the documented [MEM-SAFE-001] carve-out) compile to the same
 //      instructions as the corresponding canonical init forwarding through
-//      RawValue's own variadic init — i.e., the bitcast IS zero-cost when
+//      Underlying's own variadic init — i.e., the bitcast IS zero-cost when
 //      the function-type reinterpretation's ABI assumption holds.
 //
 // Hypothesis: With @inlinable on all public API and @_disfavoredOverload on
 //             SLI literal inits, the optimizer eliminates all wrapper overhead
 //             at -O, AND the bitcast inits compile to the same release-mode
-//             instructions as canonical-init forwarding through RawValue.
+//             instructions as canonical-init forwarding through Underlying.
 //
 // Method: Compile at -O, emit SIL and assembly, compare Tagged vs raw paths.
 //
@@ -65,7 +65,7 @@
 //   mapIdentityTagged:  mov w0, #0x2a; ret     (identical to mapIdentityDirect)
 //
 // Every function pair compiles to the same two instructions. The Tagged wrapper,
-// retag, rawValue access, Comparable delegation, and map with identity closure
+// retag, underlying access, Comparable delegation, and map with identity closure
 // are all fully eliminated by the optimizer. Zero-cost claim: CONFIRMED.
 //
 // Result (SLI literal paths, 2026-04-30 extension): the seven stdlib literal
@@ -79,7 +79,7 @@
 //       stringLiteralTagged:   <4 movs loading inline string>  (identical to stringLiteralDirect)
 //
 // (2) Array/Dict bitcast paths compile to a function-call sequence that approximates
-//     a RUNTIME-DYNAMIC call to `RawValue.init(arrayLiteral:)` / `init(dictionaryLiteral:)`,
+//     a RUNTIME-DYNAMIC call to `Underlying.init(arrayLiteral:)` / `init(dictionaryLiteral:)`,
 //     NOT to the constant-folded direct path. Specifically (Swift 6.3.1, arm64 -O):
 //
 //       arrayLiteralTagged:       ~36 instructions (stack frame + 3 function calls + load)
@@ -100,7 +100,7 @@
 //
 //     The bitcast carve-out is **NOT** zero-cost vs. constant-folded literal
 //     construction. It IS approximately equivalent to a non-folded runtime-dynamic
-//     call to `RawValue.init(arrayLiteral:)` / `init(dictionaryLiteral:)` — i.e.,
+//     call to `Underlying.init(arrayLiteral:)` / `init(dictionaryLiteral:)` — i.e.,
 //     the cost a non-Tagged consumer would pay if their input were variable rather
 //     than literal-known-at-compile-time. The bitcast's opacity to the optimizer
 //     means the optimizer can't propagate compile-time-known elements through.
@@ -117,7 +117,7 @@
 //     v1.2.1 § ABI commitment status) is updated to reflect this distinction:
 //     "operational correctness HIGH" for the function-pointer reinterpretation is
 //     verified; the runtime-cost claim is "approximately equivalent to dynamic
-//     RawValue init", NOT "bitwise-identical to literal-folded direct path".
+//     Underlying init", NOT "bitwise-identical to literal-folded direct path".
 //
 // The simple-literal paths' BITWISE-IDENTITY claim is a stronger statement and
 // holds verbatim — those literals fold through the inlinable Tagged init the
@@ -131,6 +131,14 @@
 
 import Tagged_Primitives
 import Tagged_Primitives_Standard_Library_Integration
+import Carrier_Primitives_Standard_Library_Integration
+
+// Local Carrier conformance for stdlib collection types — central Carrier SLI
+// deliberately skips these per swift-carrier-primitives/Research/sli-{array,set,dictionary}.md.
+extension Array: @retroactive Carrier.`Protocol` { public typealias Underlying = Array<Element> }
+extension ContiguousArray: @retroactive Carrier.`Protocol` { public typealias Underlying = ContiguousArray<Element> }
+extension Dictionary: @retroactive Carrier.`Protocol` { public typealias Underlying = Dictionary<Key, Value> }
+extension Set: @retroactive Carrier.`Protocol` { public typealias Underlying = Set<Element> }
 
 enum Tag1 {}
 enum Tag2 {}
@@ -139,29 +147,29 @@ enum Tag2 {}
 
 @inline(never)
 func rawTagged() -> Int {
-    let tagged = Tagged<Tag1, Int>(__unchecked: (), 42)
-    return tagged.rawValue
+    let tagged = Tagged<Tag1, Int>(42)
+    return tagged.underlying
 }
 
 @inline(never)
 func retagTagged() -> Int {
-    let tagged = Tagged<Tag1, Int>(__unchecked: (), 42)
+    let tagged = Tagged<Tag1, Int>(42)
     let retagged: Tagged<Tag2, Int> = tagged.retag()
-    return retagged.rawValue
+    return retagged.underlying
 }
 
 @inline(never)
 func compareTagged() -> Bool {
-    let a = Tagged<Tag1, Int>(__unchecked: (), 1)
-    let b = Tagged<Tag1, Int>(__unchecked: (), 2)
+    let a = Tagged<Tag1, Int>(1)
+    let b = Tagged<Tag1, Int>(2)
     return a < b
 }
 
 @inline(never)
 func mapIdentityTagged() -> Int {
-    let tagged = Tagged<Tag1, Int>(__unchecked: (), 42)
+    let tagged = Tagged<Tag1, Int>(42)
     let result = tagged.map { $0 }
-    return result.rawValue
+    return result.underlying
 }
 
 // === Path B: Raw (baseline) ===
@@ -191,25 +199,25 @@ func mapIdentityDirect() -> Int {
 @inline(never)
 func integerLiteralTagged() -> Int {
     let tagged: Tagged<Tag1, Int> = 42
-    return tagged.rawValue
+    return tagged.underlying
 }
 
 @inline(never)
 func stringLiteralTagged() -> String {
     let tagged: Tagged<Tag1, String> = "hello"
-    return tagged.rawValue
+    return tagged.underlying
 }
 
 @inline(never)
 func arrayLiteralTagged() -> [Int] {
     let tagged: Tagged<Tag1, [Int]> = [1, 2, 3]
-    return tagged.rawValue
+    return tagged.underlying
 }
 
 @inline(never)
 func dictionaryLiteralTagged() -> [String: Int] {
     let tagged: Tagged<Tag1, [String: Int]> = ["a": 1, "b": 2]
-    return tagged.rawValue
+    return tagged.underlying
 }
 
 // === Path D: Raw (baseline for SLI literal paths) ===

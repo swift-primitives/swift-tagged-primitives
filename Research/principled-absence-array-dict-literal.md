@@ -43,13 +43,13 @@ Changelog:
 
 ```swift
 extension Tagged: ExpressibleByArrayLiteral
-where RawValue: ExpressibleByArrayLiteral { ... }
+where Underlying: ExpressibleByArrayLiteral { ... }
 
 extension Tagged: ExpressibleByDictionaryLiteral
-where RawValue: ExpressibleByDictionaryLiteral { ... }
+where Underlying: ExpressibleByDictionaryLiteral { ... }
 ```
 
-The implementation forwards through `unsafeBitCast` to bridge Swift's collection-literal initializers (`init(arrayLiteral:)` / `init(dictionaryLiteral:)`) into the parameterized `Tagged<Tag, RawValue>` initialization path. The bitcast is a load-bearing implementation detail — collection-literal constructors take variadic parameters, and Swift's protocol witness machinery for those collisions across the `Tag` parameter is hard to navigate without a bitcast escape hatch.
+The implementation forwards through `unsafeBitCast` to bridge Swift's collection-literal initializers (`init(arrayLiteral:)` / `init(dictionaryLiteral:)`) into the parameterized `Tagged<Tag, Underlying>` initialization path. The bitcast is a load-bearing implementation detail — collection-literal constructors take variadic parameters, and Swift's protocol witness machinery for those collisions across the `Tag` parameter is hard to navigate without a bitcast escape hatch.
 
 Swift Institute's `swift-tagged-primitives` deliberately removes both conformances. The argument is **memory-safety stance compatibility**: per `[MEM-SAFE-001]`, the package opts into `.strictMemorySafety()` (verified at `Package.swift:56`); per the broader Institute primitives convention, no `unsafeBitCast` / `unsafeDowncast` / pointer reinterpretation appears in production code. Adopting pointfree's implementation would require importing `unsafeBitCast` into our codebase, which the memory-safety posture explicitly prohibits.
 
@@ -66,7 +66,7 @@ This document establishes the rationale and empirically classifies the absence.
 
 ## Question
 
-Should `Tagged<Tag, RawValue>` conform to `ExpressibleByArrayLiteral` and/or `ExpressibleByDictionaryLiteral` (when `RawValue` does)? If absent by default, what is the legitimate opt-in path, and is a SAFE-Swift conformance authorable on Swift 6.3.1?
+Should `Tagged<Tag, Underlying>` conform to `ExpressibleByArrayLiteral` and/or `ExpressibleByDictionaryLiteral` (when `Underlying` does)? If absent by default, what is the legitimate opt-in path, and is a SAFE-Swift conformance authorable on Swift 6.3.1?
 
 ## Prior art
 
@@ -81,23 +81,23 @@ Should `Tagged<Tag, RawValue>` conform to `ExpressibleByArrayLiteral` and/or `Ex
 
 ```swift
 extension Tagged: ExpressibleByArrayLiteral
-where RawValue: ExpressibleByArrayLiteral {
-    public init(arrayLiteral elements: RawValue.ArrayLiteralElement...) {
-        // pointfree-style: bitcast the variadic parameter through to RawValue's init
-        let raw = unsafeBitCast(elements, to: [RawValue.ArrayLiteralElement].self)
+where Underlying: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: Underlying.ArrayLiteralElement...) {
+        // pointfree-style: bitcast the variadic parameter through to Underlying's init
+        let raw = unsafeBitCast(elements, to: [Underlying.ArrayLiteralElement].self)
         let _ = raw  // pseudo — actual implementation in pointfree is more involved
-        // (full pointfree impl uses bitcast across the Tagged-vs-RawValue layout)
+        // (full pointfree impl uses bitcast across the Tagged-vs-Underlying layout)
     }
 }
 ```
 
 **Pros**:
 - Drop-in `let tagged: Tagged<Tag, [Int]> = [1, 2, 3]` ergonomics.
-- Compatible with `[Int]` / `[String: Int]` etc. literal-friendly raw values.
+- Compatible with `[Int]` / `[String: Int]` etc. literal-friendly underlying values.
 
 **Cons**:
 1. **Requires `unsafeBitCast` in production code**. Conflicts with `[MEM-SAFE-001]` strict-memory-safety opt-in. The Institute's primitives layer does not ship `unsafeBitCast` in production; this conformance would be the first exception.
-2. **Bridges a variadic-init shape that doesn't fit Tagged's structure cleanly**. The bitcast is structural, not stylistic — there's no straight `self.init(__unchecked: (), RawValue(arrayLiteral: elements...))` form because variadic forwarding into `init(arrayLiteral:...)` requires unboxing the implicit array. Swift's protocol-witness machinery ties the variadic shape to the type's static identity, and Tagged's parametric Tag complicates the resolution.
+2. **Bridges a variadic-init shape that doesn't fit Tagged's structure cleanly**. The bitcast is structural, not stylistic — there's no straight `self.init(_unchecked: Underlying(arrayLiteral: elements...))` form because variadic forwarding into `init(arrayLiteral:...)` requires unboxing the implicit array. Swift's protocol-witness machinery ties the variadic shape to the type's static identity, and Tagged's parametric Tag complicates the resolution.
 
 ### Option B — SLI opt-in (with safe-Swift conformance only)
 
@@ -105,20 +105,20 @@ The SLI opt-in would require a non-`unsafeBitCast` implementation. Empirically: 
 
 ```swift
 extension Tagged: ExpressibleByArrayLiteral
-where Tag: ~Copyable & ~Escapable, RawValue: ExpressibleByArrayLiteral & Escapable {
-    public typealias ArrayLiteralElement = RawValue.ArrayLiteralElement
-    public init(arrayLiteral elements: RawValue.ArrayLiteralElement...) {
-        // Safe-Swift: try to forward through RawValue's init.
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByArrayLiteral & Escapable {
+    public typealias ArrayLiteralElement = Underlying.ArrayLiteralElement
+    public init(arrayLiteral elements: Underlying.ArrayLiteralElement...) {
+        // Safe-Swift: try to forward through Underlying's init.
         // (Empirical question: does Swift's variadic-bridging compile here?)
-        self.init(__unchecked: (), RawValue(arrayLiteral: elements))
-        // ^^^ but RawValue.init(arrayLiteral:) takes variadic, not [Element]
+        self.init(_unchecked: Underlying(arrayLiteral: elements))
+        // ^^^ but Underlying.init(arrayLiteral:) takes variadic, not [Element]
         // ^^^ and this signature collision is the root structural issue
     }
 }
 ```
 
 **Cons**:
-- Empirical: likely doesn't compile cleanly because `RawValue.init(arrayLiteral:)` is variadic and Swift's variadic re-forwarding from one type's protocol witness to another is structurally limited.
+- Empirical: likely doesn't compile cleanly because `Underlying.init(arrayLiteral:)` is variadic and Swift's variadic re-forwarding from one type's protocol witness to another is structurally limited.
 - Even if it compiles via spread / unboxing, the implementation has subtleties (variadic-array-vs-Array conversion) that pointfree's `unsafeBitCast` sidesteps for performance reasons.
 
 ### Option C — Hard absence + per-domain conformance
@@ -128,7 +128,7 @@ where Tag: ~Copyable & ~Escapable, RawValue: ExpressibleByArrayLiteral & Escapab
 struct UserGroup: ExpressibleByArrayLiteral {
     let storage: Tagged<UserGroupTag, [Int]>
     init(arrayLiteral elements: Int...) {
-        self.storage = Tagged<UserGroupTag, [Int]>(__unchecked: (), Array(elements))
+        self.storage = Tagged<UserGroupTag, [Int]>(_unchecked: Array(elements))
     }
 }
 
@@ -156,33 +156,33 @@ Per user direction 2026-04-30, the strict-memory-safety stance gets one document
 
 ```swift
 extension Tagged: ExpressibleByArrayLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByArrayLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByArrayLiteral {
     @_disfavoredOverload
-    public init(arrayLiteral elements: RawValue.ArrayLiteralElement...) {
+    public init(arrayLiteral elements: Underlying.ArrayLiteralElement...) {
         let f = unsafe unsafeBitCast(
-            RawValue.init(arrayLiteral:) as (RawValue.ArrayLiteralElement...) -> RawValue,
-            to: (([RawValue.ArrayLiteralElement]) -> RawValue).self
+            Underlying.init(arrayLiteral:) as (Underlying.ArrayLiteralElement...) -> Underlying,
+            to: (([Underlying.ArrayLiteralElement]) -> Underlying).self
         )
-        self.init(__unchecked: (), f(elements))
+        self.init(_unchecked: f(elements))
     }
 }
 
 extension Tagged: ExpressibleByDictionaryLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByDictionaryLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByDictionaryLiteral {
     @_disfavoredOverload
-    public init(dictionaryLiteral elements: (RawValue.Key, RawValue.Value)...) {
+    public init(dictionaryLiteral elements: (Underlying.Key, Underlying.Value)...) {
         let f = unsafe unsafeBitCast(
-            RawValue.init(dictionaryLiteral:) as ((RawValue.Key, RawValue.Value)...) -> RawValue,
-            to: (([(RawValue.Key, RawValue.Value)]) -> RawValue).self
+            Underlying.init(dictionaryLiteral:) as ((Underlying.Key, Underlying.Value)...) -> Underlying,
+            to: (([(Underlying.Key, Underlying.Value)]) -> Underlying).self
         )
-        self.init(__unchecked: (), f(elements))
+        self.init(_unchecked: f(elements))
     }
 }
 ```
 
 The `unsafe` expression keyword on the `unsafeBitCast` call satisfies the `[MEM-SAFE-001]` strict-memory-safety opt-in's audit requirement: every unsafe operation is explicitly marked. The carve-out is bounded — only these two specific bitcast call sites, only these two specific protocol witnesses.
 
-**Why the bitcast is operationally safe**: the conversion is from `(Element...) -> RawValue` to `([Element]) -> RawValue`. Swift's variadic parameters are themselves `Array<T>` at the ABI level; the function-type reinterpretation is exact. The `unsafe` marker exists because Swift's type system does not surface variadic-vs-array as compatible function types — the type-level safety is the unverified part, not the runtime behaviour.
+**Why the bitcast is operationally safe**: the conversion is from `(Element...) -> Underlying` to `([Element]) -> Underlying`. Swift's variadic parameters are themselves `Array<T>` at the ABI level; the function-type reinterpretation is exact. The `unsafe` marker exists because Swift's type system does not surface variadic-vs-array as compatible function types — the type-level safety is the unverified part, not the runtime behaviour.
 
 Coverage now matches pointfreeco's parametric reach:
 
@@ -234,7 +234,7 @@ In any of (1), (2), or (3), the package's behaviour is bounded to the Array/Dict
 
 1. **CI coverage** — the package's CI exercises Array and Dict literal initialization on each toolchain change; any toolchain that breaks the ABI assumption will fail the literal test suite (`Tagged+Literals Tests.swift` Performance + Unit) before reaching consumers. The Performance sub-suite's `literal construction batched` test exercises the bitcast init path 1,000 times per run.
 2. **Beta-toolchain testing** — when Swift beta toolchains for major version bumps are published, the package SHOULD be built against them as part of the regular ecosystem-wide cross-toolchain matrix. Failure on beta is the early-warning signal.
-3. **Fallback removal path** — if the ABI assumption fails on a future toolchain, the carve-out's two conformances would be removed in a minor-version bump (`0.x → 0.(x+1)`). Consumers whose `RawValue` is Array-shaped retain the `RangeReplaceableCollection`-constrained safe-Swift path documented in v1.1.0 (now superseded but mechanically authorable). Consumers whose `RawValue` is `Dictionary` or non-RRC `Set` would author per-domain wrapper structs (Option C of this document).
+3. **Fallback removal path** — if the ABI assumption fails on a future toolchain, the carve-out's two conformances would be removed in a minor-version bump (`0.x → 0.(x+1)`). Consumers whose `Underlying` is Array-shaped retain the `RangeReplaceableCollection`-constrained safe-Swift path documented in v1.1.0 (now superseded but mechanically authorable). Consumers whose `Underlying` is `Dictionary` or non-RRC `Set` would author per-domain wrapper structs (Option C of this document).
 4. **Forward-port to safe Swift** — if a future Swift surfaces variadic generics applied to literal-conformance witnesses, or a stdlib-level `LiteralConvertibleFromSequence`-style protocol, the carve-out is removed in favour of the safe-Swift path; consumer-visible behaviour is preserved.
 
 ### Confidence level
@@ -242,8 +242,8 @@ In any of (1), (2), or (3), the package's behaviour is bounded to the Array/Dict
 | Dimension | Assessment |
 |---|---|
 | Operational correctness on Swift 6.3.x | **HIGH** — empirically verified by `Experiments/tagged-zero-cost-codegen/`, which exercises both the canonical init and the bitcast inits at -O on arm64 macOS 26 and confirms functional equivalence (114/114 tests pass; runtime values are identical). pointfreeco's ~6-year track record across multiple Swift major versions provides corroborating evidence at the cross-toolchain dimension. |
-| Runtime cost vs. canonical (non-folded) `RawValue.init(arrayLiteral:)` | **APPROXIMATELY EQUIVALENT** — the bitcast adds the function-pointer-reinterpretation cost (a single move into the function-pointer register) plus the call indirection; in release-mode codegen this is on the order of one extra call and a stack-frame setup vs. a direct dynamic init. For runtime-variable inputs (the typical primitives-layer use case), the bitcast init is a near-equivalent cost to a non-folded dynamic init through the same protocol witness. |
-| Runtime cost vs. constant-folded literal-construction (direct path) | **HIGHER** — `let xs: [Int] = [1, 2, 3]` constant-folds to a static-Array reference under -O (~3 instructions); `let tagged: Tagged<Tag, [Int]> = [1, 2, 3]` does NOT reach the constant folder because `unsafeBitCast` is opaque to the optimizer (~36 instructions). This is a property of `unsafeBitCast`'s optimizer-opacity, not the carve-out's correctness. Consumers needing constant-folded Array literal performance should construct the Array first and wrap explicitly: `let xs: [Int] = [1, 2, 3]; let tagged = Tagged<Tag, [Int]>(__unchecked: (), xs)`. |
+| Runtime cost vs. canonical (non-folded) `Underlying.init(arrayLiteral:)` | **APPROXIMATELY EQUIVALENT** — the bitcast adds the function-pointer-reinterpretation cost (a single move into the function-pointer register) plus the call indirection; in release-mode codegen this is on the order of one extra call and a stack-frame setup vs. a direct dynamic init. For runtime-variable inputs (the typical primitives-layer use case), the bitcast init is a near-equivalent cost to a non-folded dynamic init through the same protocol witness. |
+| Runtime cost vs. constant-folded literal-construction (direct path) | **HIGHER** — `let xs: [Int] = [1, 2, 3]` constant-folds to a static-Array reference under -O (~3 instructions); `let tagged: Tagged<Tag, [Int]> = [1, 2, 3]` does NOT reach the constant folder because `unsafeBitCast` is opaque to the optimizer (~36 instructions). This is a property of `unsafeBitCast`'s optimizer-opacity, not the carve-out's correctness. Consumers needing constant-folded Array literal performance should construct the Array first and wrap explicitly: `let xs: [Int] = [1, 2, 3]; let tagged = Tagged<Tag, [Int]>(_unchecked: xs)`. |
 | ABI-commitment status | **CURRENT-IMPLEMENTATION RELIANCE** — not part of the documented stable-ABI manifesto; relies on the variadic-as-Array implementation's de-facto stability. |
 | Failure-mode containment | **HIGH** — bounded to two init call sites; expected failure mode is compile-time, not runtime; no escape into stored state. |
 | Recovery posture | **MEDIUM-HIGH** — clear minor-version-bump removal path; consumer migration to per-domain wrappers or RRC-shaped safe path is documented. |

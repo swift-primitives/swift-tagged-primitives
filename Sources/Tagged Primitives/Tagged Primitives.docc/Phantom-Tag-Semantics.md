@@ -13,8 +13,11 @@ jobs. Understanding the difference is how you pick the right primitive.
 
 ```swift
 // swift-tagged-primitives (this package)
-public struct Tagged<Tag: ~Copyable, RawValue: ~Copyable>: ~Copyable {
-    public var rawValue: RawValue
+public struct Tagged<Tag: ~Copyable, Underlying: ~Copyable>: ~Copyable {
+    @usableFromInline package var _storage: Underlying
+}
+extension Tagged: Carrier.`Protocol` where Underlying: Carrier.`Protocol` {
+    public var underlying: Self.Underlying { _read { yield _storage.underlying } }
 }
 
 // swift-property-primitives
@@ -26,7 +29,7 @@ extension Property where Base: ~Copyable {
 }
 ```
 
-Both wrap a value (`rawValue` / `_base`), both discriminate on a phantom
+Both wrap a value (`_storage` / `_base`), both discriminate on a phantom
 `Tag`. Parameter order is identical: discriminator first, value second.
 
 So what distinguishes them?
@@ -39,12 +42,12 @@ The distinction is what the phantom tag *discriminates*.
 |---|----------|------------|
 | What the tag discriminates | **Domain identity** of the value | **Verb namespace** dispatched via extensions |
 | Example | `Index<Graph>` ≠ `Index<Bit>` — different indices in different domains | `Property<Push, Stack>` vs `Property<Pop, Stack>` — same stack, different namespace |
-| Tag values typical | Existing domain types (`Graph`, `Bit`, `UserID`) | Empty enums defined per-container (`enum Push {}`) |
+| Tag values typical | Existing domain types (`Graph`, `Bit`, `User.ID`) | Empty enums defined per-container (`enum Push {}`) |
 | Meaningful ops on tag | `retag<NewTag>` (phantom coercion is meaningful) | None — retagging `Push` to `Pop` would be semantically nonsensical |
 | Extension surface | Per-domain API (`extension Tagged where Tag == Ordinal { ... }`) | Per-namespace API (`extension Property where Tag == Stack<E>.Push { mutating func back(...) }`) |
 
 `Tagged` gives values *identity* — the same operations apply; the tag
-says what kind of thing the value is. Bring a `rawValue` through
+says what kind of thing the value is. Bring an `underlying` through
 without losing its domain. `retag<NewTag>` is the canonical meaningful
 operation.
 
@@ -95,17 +98,17 @@ v1.1.0+ for the full categorical-asymmetry argument.
 ### Tagged tags (domain identity)
 
 - **Pre-existing domain types**, not purpose-built empty enums:
-  `Graph`, `UserID`, `Bit`, `Ordinal`.
+  `Graph`, `User`, `Bit`, `Ordinal`.
 - **`retag<NewTag>` is a real operation** — crossing from `Index<Graph>`
   to `Index<Bit>` is a meaningful explicit coercion.
 - **Extensions are per-domain, not per-namespace**.
 
 ```swift
-typealias UserID = Tagged<User, UInt64>
-typealias OrderID = Tagged<Order, UInt64>
+extension User  { typealias ID = Tagged<User,  UInt64> }
+extension Order { typealias ID = Tagged<Order, UInt64> }
 
-extension Tagged where Tag == User {
-    var isGuest: Bool { rawValue == 0 }
+extension Tagged where Tag == User, Underlying == UInt64 {
+    var isGuest: Bool { underlying == 0 }
 }
 ```
 
@@ -121,7 +124,7 @@ See ``Property``'s Phantom Tag Semantics article for full guidance.
 ## Decision test
 
 If your tag is an existing domain type that names what kind of value
-you're wrapping (`UserID`, `Ordinal`, `Index<Graph>`) and you want
+you're wrapping (`User`, `Ordinal`, `Index<Graph>`) and you want
 per-domain operations — you want **`Tagged`** (this package).
 
 If your tag is a purpose-built empty enum that names an operation

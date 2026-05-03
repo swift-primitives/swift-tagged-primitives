@@ -8,9 +8,9 @@
 //     `Tagged: Identifiable` parametrically.
 //
 // (b) IDENTITY-INVERSION DEMONSTRATION: with the SLI conformance
-//     active, show that Identifiable-driven code observes RawValue.id,
+//     active, show that Identifiable-driven code observes Underlying.id,
 //     NOT the phantom-typed identity that Tagged was supposed to carry.
-//     Two Tagged values with different Tags but the same RawValue.id
+//     Two Tagged values with different Tags but the same Underlying.id
 //     are "the same" to Identifiable consumers.
 //
 // (c) PER-DOMAIN ALTERNATIVE (Option C): demonstrate the recommended
@@ -20,6 +20,7 @@
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
 import Tagged_Primitives_Standard_Library_Integration
 
 // MARK: - Domain setup
@@ -30,13 +31,14 @@ enum Order {}
 extension User  { typealias ID = Tagged<User,  UInt64> }
 extension Order { typealias ID = Tagged<Order, UInt64> }
 
-// MARK: - Identifiable RawValue setup
+// MARK: - Identifiable Underlying setup
 //
-// Make a domain RawValue that has a `.id` of its own (a UUID-like
+// Make a domain Underlying that has a `.id` of its own (a UUID-like
 // struct that itself conforms to Identifiable).
 
-struct DomainKey: Identifiable, Hashable, Equatable, Sendable {
+struct DomainKey: Identifiable, Hashable, Equatable, Sendable, Carrier.`Protocol` {
     let id: UInt64
+    typealias Underlying = Self
 }
 
 // MARK: - SLI-shipped conformance verification
@@ -46,19 +48,19 @@ struct DomainKey: Identifiable, Hashable, Equatable, Sendable {
 // Importing SLI (above) brings the conformance into scope.
 
 let userKey = DomainKey(id: 42)
-let userTagged: Tagged<User, DomainKey> = Tagged<User, DomainKey>(__unchecked: (), userKey)
+let userTagged: Tagged<User, DomainKey> = Tagged<User, DomainKey>(userKey)
 
-precondition(userTagged.id == 42, "Tagged.id forwards to rawValue.id correctly")
+precondition(userTagged.id == 42, "Tagged.id forwards to underlying.id correctly")
 
-print("tagged-no-identifiable: SLI-shipped Tagged: Identifiable conformance works — userTagged.id == 42 forwards to rawValue.id.")
+print("tagged-no-identifiable: SLI-shipped Tagged: Identifiable conformance works — userTagged.id == 42 forwards to underlying.id.")
 
 // MARK: - Identity-inversion demonstration
 //
-// Two Tagged values with different Tags but the same RawValue.id are
+// Two Tagged values with different Tags but the same Underlying.id are
 // "the same" to Identifiable consumers. This is the cost the rationale
 // critiques.
 
-let orderTagged: Tagged<Order, DomainKey> = Tagged<Order, DomainKey>(__unchecked: (), userKey)
+let orderTagged: Tagged<Order, DomainKey> = Tagged<Order, DomainKey>(userKey)
 
 // Both have the same Identifiable.id even though they're entirely different
 // phantom-typed types. Generic Identifiable code can't distinguish them.
@@ -95,9 +97,9 @@ extension Order {
     }
 }
 
-let alice = User.Profile(id: User.ID(__unchecked: (), 1), name: "Alice")
-let bob   = User.Profile(id: User.ID(__unchecked: (), 2), name: "Bob")
-let purchase = Order.Receipt(id: Order.ID(__unchecked: (), 1), total: 100)
+let alice = User.Profile(id: User.ID(1), name: "Alice")
+let bob   = User.Profile(id: User.ID(2), name: "Bob")
+let purchase = Order.Receipt(id: Order.ID(1), total: 100)
 
 // Now Identifiable.ID type itself differs between User.Profile and Order.Receipt
 // — generic code constrained on Identifiable observes the *Tagged* type as the

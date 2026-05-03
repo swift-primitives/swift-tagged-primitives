@@ -20,7 +20,7 @@ extension `Tagged + LosslessStringConvertible Tests`.Unit {
     @Test
     func `init parses valid string`() {
         let tagged: Tagged<Tag1, Int>? = Tagged<Tag1, Int>(String("42"))
-        #expect(tagged?.rawValue == 42)
+        #expect(tagged?.underlying == 42)
     }
 
     @Test
@@ -30,13 +30,13 @@ extension `Tagged + LosslessStringConvertible Tests`.Unit {
     }
 
     @Test
-    func `description forwards to rawValue description`() {
+    func `description forwards to underlying description`() {
         let tagged: Tagged<Tag1, Int> = 99
         #expect(tagged.description == "99")
     }
 
     @Test
-    func `Tagged conforms to LosslessStringConvertible when RawValue conforms`() {
+    func `Tagged conforms to LosslessStringConvertible when Underlying conforms`() {
         func _requireLossless<T: LosslessStringConvertible>(_: T.Type) {}
         _requireLossless(Tagged<Tag1, Int>.self)
         #expect(Bool(true))
@@ -57,7 +57,7 @@ extension `Tagged + LosslessStringConvertible Tests`.`Edge Case` {
 
     @Test
     func `string description does not encode the phantom Tag`() {
-        // The cost of the SLI conformance: descriptions are RawValue-only.
+        // The cost of the SLI conformance: descriptions are Underlying-only.
         let userVal: Tagged<Tag1, Int> = 42
         let orderVal: Tagged<Tag2, Int> = 42
         #expect(userVal.description == orderVal.description)
@@ -67,7 +67,7 @@ extension `Tagged + LosslessStringConvertible Tests`.`Edge Case` {
     func `same string parses to either Tag — receiver type decides`() {
         let asTag1: Tagged<Tag1, Int>? = Tagged<Tag1, Int>(String("99"))
         let asTag2: Tagged<Tag2, Int>? = Tagged<Tag2, Int>(String("99"))
-        #expect(asTag1?.rawValue == 99 && asTag2?.rawValue == 99)
+        #expect(asTag1?.underlying == 99 && asTag2?.underlying == 99)
     }
 }
 
@@ -78,7 +78,7 @@ extension `Tagged + LosslessStringConvertible Tests`.Integration {
     @Test
     func `roundtrip across many values`() {
         for raw in [Int.min, -1, 0, 1, 42, Int.max] {
-            let original: Tagged<Tag1, Int> = Tagged<Tag1, Int>(__unchecked: (), raw)
+            let original: Tagged<Tag1, Int> = Tagged<Tag1, Int>(_unchecked: raw)
             let reconstructed: Tagged<Tag1, Int>? = Tagged<Tag1, Int>(original.description)
             #expect(reconstructed == original)
         }
@@ -93,7 +93,7 @@ extension `Tagged + LosslessStringConvertible Tests`.Performance {
     func `roundtrip batched`() {
         var ok = 0
         for i in 0..<1_000 {
-            let original: Tagged<Tag1, Int> = Tagged<Tag1, Int>(__unchecked: (), i)
+            let original: Tagged<Tag1, Int> = Tagged<Tag1, Int>(_unchecked: i)
             if let reconstructed: Tagged<Tag1, Int> = Tagged<Tag1, Int>(original.description),
                reconstructed == original { ok += 1 }
         }

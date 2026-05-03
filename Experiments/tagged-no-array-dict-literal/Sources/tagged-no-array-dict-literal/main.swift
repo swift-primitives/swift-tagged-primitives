@@ -33,7 +33,16 @@
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
+
 import Tagged_Primitives_Standard_Library_Integration
+
+// Local Carrier conformance for stdlib collection types — central Carrier SLI
+// deliberately skips these per swift-carrier-primitives/Research/sli-{array,set,dictionary}.md.
+extension Array: @retroactive Carrier.`Protocol` { public typealias Underlying = Array<Element> }
+extension ContiguousArray: @retroactive Carrier.`Protocol` { public typealias Underlying = ContiguousArray<Element> }
+extension Dictionary: @retroactive Carrier.`Protocol` { public typealias Underlying = Dictionary<Key, Value> }
+extension Set: @retroactive Carrier.`Protocol` { public typealias Underlying = Set<Element> }
 
 // MARK: - Domain setup
 
@@ -45,21 +54,21 @@ enum Group {}
 // ContiguousArray, Set (set literal reuses array syntax), Dictionary.
 
 let arr: Tagged<Group, [Int]> = [10, 20, 30]
-precondition(arr.rawValue == [10, 20, 30], "Array literal via SLI")
+precondition(arr.underlying == [10, 20, 30], "Array literal via SLI")
 
 let cont: Tagged<Group, ContiguousArray<Int>> = [1, 2, 3]
-precondition(Array(cont.rawValue) == [1, 2, 3], "ContiguousArray literal via SLI")
+precondition(Array(cont.underlying) == [1, 2, 3], "ContiguousArray literal via SLI")
 
 let setTagged: Tagged<Group, Set<Int>> = [1, 2, 3]
-precondition(setTagged.rawValue == Set([1, 2, 3]), "Set literal (array-syntax) via SLI")
+precondition(setTagged.underlying == Set([1, 2, 3]), "Set literal (array-syntax) via SLI")
 
 let dict: Tagged<Group, [String: Int]> = ["alice": 1, "bob": 2]
-precondition(dict.rawValue == ["alice": 1, "bob": 2], "Dictionary literal via SLI")
+precondition(dict.underlying == ["alice": 1, "bob": 2], "Dictionary literal via SLI")
 
 print("tagged-no-array-dict-literal: SLI-shipped parametric conformances work for Array, ContiguousArray, Set, Dictionary.")
-print("   Tagged<Group, [Int]>      = \(arr.rawValue)")
-print("   Tagged<Group, Set<Int>>   = \(setTagged.rawValue)")
-print("   Tagged<Group, [Str: Int]> = \(dict.rawValue)")
+print("   Tagged<Group, [Int]>      = \(arr.underlying)")
+print("   Tagged<Group, Set<Int>>   = \(setTagged.underlying)")
+print("   Tagged<Group, [Str: Int]> = \(dict.underlying)")
 
 // MARK: - (b) Per-domain wrapper alternative
 //
@@ -71,12 +80,12 @@ struct UserGroup: ExpressibleByArrayLiteral, Equatable {
     init(arrayLiteral elements: Int...) {
         // Domain validation lives here: positive IDs only.
         let validated = elements.filter { $0 > 0 }
-        self.storage = Tagged<Group, [Int]>(__unchecked: (), validated)
+        self.storage = Tagged<Group, [Int]>(validated)
     }
 }
 
 let group: UserGroup = [1, 2, -1, 3]      // -1 filtered by domain validation
-precondition(group.storage.rawValue == [1, 2, 3], "domain-validated wrapper init")
+precondition(group.storage.underlying == [1, 2, 3], "domain-validated wrapper init")
 
 print("tagged-no-array-dict-literal: per-domain wrapper UserGroup applies domain validation in literal init (filters negative IDs).")
 
