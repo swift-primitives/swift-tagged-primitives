@@ -38,16 +38,27 @@ public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escap
     @usableFromInline
     package var _storage: Underlying
 
-    /// Package-internal direct construction. SLI conformances and
-    /// per-domain types within the same package use this to wrap an
-    /// already-validated underlying value without going through
-    /// `Carrier.\`Protocol\``'s public init.
+    /// Direct construction from an already-validated underlying value.
     ///
-    /// External consumers use the `Carrier.\`Protocol\``-derived public
-    /// init `Tagged<Tag, U>(_ underlying:)` instead.
+    /// The leading underscore + `_unchecked` label signals "bypass any
+    /// Carrier-derived validation; you are asserting the value is already
+    /// suitable." This is the right path for:
+    ///
+    /// - SLI conformances and per-domain types within this package
+    /// - Cross-package domain wrappers whose `Underlying` cannot itself
+    ///   conform to `Carrier.\`Protocol\`` (e.g., `Tagged<Tag, Ownership.Inout<Base>>`
+    ///   in `Property.View` — `Inout` is a scoped projection, not an
+    ///   owned value, so it cannot satisfy Carrier's consuming init)
+    /// - Performance-critical paths where the `Carrier.\`Protocol\``-derived
+    ///   `init(_:)` would route through an Underlying init that does
+    ///   redundant work
+    ///
+    /// For the common case where `Underlying: Carrier.\`Protocol\``, prefer
+    /// `Tagged<Tag, U>(_ underlying:)` (the Carrier-derived init) so any
+    /// domain validation in `U.init(_:)` runs.
     @inlinable
     @_lifetime(copy underlying)
-    package init(_unchecked underlying: consuming Underlying) {
+    public init(_unchecked underlying: consuming Underlying) {
         self._storage = underlying
     }
 }
