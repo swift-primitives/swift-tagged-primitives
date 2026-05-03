@@ -11,11 +11,11 @@ tier: 2
 
 ## Context
 
-`swift-tagged-primitives` is a pre-0.1.0 tag candidate. The last systematic audit (`swift-institute/Research/audits/implementation-naming-2026-03-20/swift-small-packages-batch.md`) returned CLEAN but predates three structural changes: the rename from `swift-identity-primitives` → `swift-tagged-primitives` (commit `0d6d0f9`), the generic widening to admit `~Escapable` Tag and RawValue (commit `1cf5396`), and the migration from the bespoke `Viewable` protocol to the unified `Ownership.Borrow.\`Protocol\`` (commit `9ac9b04`).
+`swift-tagged-primitives` is a pre-0.1.0 tag candidate. The last systematic audit (`swift-institute/Research/audits/implementation-naming-2026-03-20/swift-small-packages-batch.md`) returned CLEAN but predates three structural changes: the rename from `swift-identity-primitives` → `swift-tagged-primitives` (commit `0d6d0f9`), the generic widening to admit `~Escapable` Tag and Underlying (commit `1cf5396`), and the migration from the bespoke `Viewable` protocol to the unified `Ownership.Borrow.\`Protocol\`` (commit `9ac9b04`).
 
 Before cementing the 0.1.0 API surface — load-bearing across ~308 call-site files in `swift-primitives`, ~12 in `swift-foundations`, and ~5 in `swift-standards` — this document asks three questions the prior audit was not structured to answer:
 
-1. **Merit** — does `Tagged<Tag, RawValue>` occupy a unique position in the design space? What would be lost if it didn't exist, or if consumers adopted Point-Free's `swift-tagged` instead?
+1. **Merit** — does `Tagged<Tag, Underlying>` occupy a unique position in the design space? What would be lost if it didn't exist, or if consumers adopted Point-Free's `swift-tagged` instead?
 2. **Completeness** — is there a Tagged-adjacent primitive that SHOULD exist but doesn't?
 3. **Naming** — does every public declaration pass the diametric-collision check against Rust / Swift stdlib / Point-Free vocabulary? Does the rename from `swift-identity-primitives` → `swift-tagged-primitives` carry its weight?
 
@@ -48,7 +48,7 @@ Resolved by `comparative-analysis-pointfree-swift-tagged.md` (DECISION, 2026-02-
 
 | Dimension | Our delta | Merit verdict |
 |-----------|-----------|---------------|
-| `~Copyable` / `~Escapable` support in Tag AND RawValue | Both admitted | **Distinctive** — neither stdlib's `RawRepresentable` nor `pointfreeco/swift-tagged` admits this; both predate Swift's noncopyable-generics features (SE-0427, SE-0446). Required for `Index<Element>` where `Element: ~Copyable`. |
+| `~Copyable` / `~Escapable` support in Tag AND Underlying | Both admitted | **Distinctive** — neither stdlib's `RawRepresentable` nor `pointfreeco/swift-tagged` admits this; both predate Swift's noncopyable-generics features (SE-0427, SE-0446). Required for `Index<Element>` where `Element: ~Copyable`. |
 | Zero-cost verification | `@inlinable` + `@usableFromInline` + codegen experiment + 7 MemoryLayout proof tests | **Superior** — Point-Free claims zero-cost; we prove it. |
 | Operator non-forwarding | Deliberate | **Diverges** — Point-Free ships `Numeric` / `AdditiveArithmetic` / `Strideable`. We don't. The divergence is the safety guarantee: if `Tagged<Graph, Int>` conformed to `Numeric`, `Index<Graph> + Index<Bit>.Count` would compile. |
 | Typed throws | `throws(E)` on `map` | **Superior** — Point-Free's `rethrows` erases to `any Error`. |
@@ -62,12 +62,12 @@ The hand-rolled alternative is one struct per domain:
 
 ```swift
 public struct UserID: Hashable, Codable {
-    public let rawValue: UInt64
-    public init(_ rawValue: UInt64) { self.rawValue = rawValue }
+    public let underlying: UInt64
+    public init(_ underlying: UInt64) { self.underlying = underlying }
 }
 public struct OrderID: Hashable, Codable {
-    public let rawValue: UInt64
-    public init(_ rawValue: UInt64) { self.rawValue = rawValue }
+    public let underlying: UInt64
+    public init(_ underlying: UInt64) { self.underlying = underlying }
 }
 // ... repeated N times
 ```
@@ -153,7 +153,7 @@ Both functor laws are tested (`Tagged Tests.swift` lines 302–317):
 - Identity: `tagged.map { $0 } == tagged`
 - Composition: `tagged.map { f(g($0)) } == tagged.map(g).map(f)`
 
-The bifunctor structure (covariant in RawValue via `map`, phantom-varying in Tag via `retag`) is complete. `retag` laws (round-trip, associativity across three tags) are also tested (lines 322–336). No gap.
+The bifunctor structure (covariant in Underlying via `map`, phantom-varying in Tag via `retag`) is complete. `retag` laws (round-trip, associativity across three tags) are also tested (lines 322–336). No gap.
 
 #### 2.6 Ownership-primitives relationship — conformance migrated, tagged stays atomic (revised 2026-04-24)
 
@@ -165,7 +165,7 @@ Post-move state:
 - `swift-ownership-primitives` adds `swift-tagged-primitives` as a package-level dependency, scoped to the `Ownership Borrow Primitives` target only.
 - Wrapper transparency is preserved: any consumer that imports `swift-ownership-primitives` (directly or transitively) sees `Tagged<Tag, X>.Borrowed == X.Borrowed` whenever `X` conforms.
 
-Ecosystem consistency argument: `Tagged` is an atomic wrapper substrate. Specialist protocol / behavior packages (ordinal, cardinal, format, ownership, …) extend `Tagged` for their own `RawValue`-specific concerns; they depend on tagged-primitives, not the reverse. This matches the "Tagged's core claim is transparency over stdlib capabilities; ecosystem-protocol transparency is the specialist's responsibility" principle.
+Ecosystem consistency argument: `Tagged` is an atomic wrapper substrate. Specialist protocol / behavior packages (ordinal, cardinal, format, ownership, …) extend `Tagged` for their own `Underlying`-specific concerns; they depend on tagged-primitives, not the reverse. This matches the "Tagged's core claim is transparency over stdlib capabilities; ecosystem-protocol transparency is the specialist's responsibility" principle.
 
 **Net effect**: the cross-package "tier table stale" finding that earlier revisions flagged is resolved — tagged-primitives is back at tier 0, no ecosystem-wide documentation update needed.
 
@@ -198,7 +198,7 @@ The rename `swift-identity-primitives` → `swift-tagged-primitives` (commit `0d
 
 **Verdict**: package name correct.
 
-#### 3.2 Top-level type: `Tagged<Tag, RawValue>`
+#### 3.2 Top-level type: `Tagged<Tag, Underlying>`
 
 Per [API-NAME-001] Nest.Name: the type does not nest under a namespace. This is consistent with tier 0 / tier 1 packages whose single public type IS the namespace (`Cardinal`, `Ordinal`, `Bit`). **No nest violation.**
 
@@ -207,7 +207,7 @@ Generic parameters:
 | Parameter | Role | Collision? |
 |-----------|------|-----------|
 | `Tag` | Phantom discriminator | Shadows stdlib's convention of `Tag` in `Result` generics, but `Tagged` is the consuming context, not a conflict. |
-| `RawValue` | Wrapped value | Shadows Swift's `RawRepresentable.RawValue`. The similarity is deliberate — `rawValue` the property is conceptually aligned with `RawRepresentable.rawValue`. We intentionally do NOT conform to `RawRepresentable` (see `comparative-analysis-pointfree-swift-tagged.md` §3.1); the name reuse is semantic alignment without conformance. **Not a collision.** |
+| `Underlying` | Wrapped value | Shadows Swift's `RawRepresentable.Underlying`. The similarity is deliberate — `underlying` the property is conceptually aligned with `RawRepresentable.underlying`. We intentionally do NOT conform to `RawRepresentable` (see `comparative-analysis-pointfree-swift-tagged.md` §3.1); the name reuse is semantic alignment without conformance. **Not a collision.** |
 
 **Verdict**: type + generic parameter names correct.
 
@@ -217,9 +217,9 @@ Enumerating every public declaration in `Sources/Tagged Primitives/`:
 
 | Declaration | Kind | Naming check | Verdict |
 |-------------|------|--------------|---------|
-| `Tagged<Tag, RawValue>` | struct | §3.2 | ✓ |
-| `rawValue` | stored property | Matches `RawRepresentable.rawValue` by design; does NOT conform to `RawRepresentable` (principled) | ✓ |
-| `init(__unchecked: Void, _: consuming RawValue)` | init | `__unchecked` prefix signals "not domain-validated"; [API-NAME-002] compound-identifier rule does not apply to labels that are prefixed with `__` as escape hatches | ✓ — documents the semantic contract |
+| `Tagged<Tag, Underlying>` | struct | §3.2 | ✓ |
+| `underlying` | computed property (Carrier.\`Protocol\` witness) | Matches `Carrier.\`Protocol\`.underlying` by design; does NOT conform to `RawRepresentable` (principled) | ✓ |
+| `init(_unchecked: consuming Underlying)` | package-internal init | `_unchecked` prefix signals "not domain-validated"; access level is `package`, so external consumers go through the public `Carrier.\`Protocol\``-derived `init(_ underlying:)` instead | ✓ — documents the semantic contract |
 | `map(_:)` instance | consuming func | Swift stdlib precedent (`Optional.map`, `Sequence.map`); same semantics (functor map) | ✓ — aligned vocabulary |
 | `map(_:transform:)` static | func | `static map` per [IMPL-023] (core logic lives on the static) | ✓ |
 | `retag(_:)` instance | consuming func | Not in Swift stdlib; matches Rust's phantom-rename convention; more precise than Point-Free's `coerced(to:)` (changes the tag, not the value) | ✓ — correct vocabulary, precise |
@@ -244,15 +244,15 @@ The former `Tagged+Ownership.Borrow.Protocol.swift` (noted in earlier revisions)
 
 #### 3.5 Sendable doc comment
 
-`Tagged.swift` line 77: `extension Tagged: Sendable where Tag: ~Copyable & ~Escapable, RawValue: ~Copyable & Sendable & Escapable {}`
+`Tagged.swift` line 77: `extension Tagged: Sendable where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & Sendable & Escapable {}`
 
 No `@unchecked`; no `@unsafe`. The Sendable conformance is fully synthesised by the compiler per [MEM-SEND-004] — `Tagged` stores exactly one field, and when that field is `Sendable`, the containing type is structurally `Sendable`. **No workaround to revalidate.**
 
 #### 3.6 `modify` package-internal method
 
-`Tagged.swift` line 57: `package mutating func modify<T>(_ body: (_ rawValue: inout RawValue) -> T) -> T`
+`Tagged.swift` line 57: `package mutating func modify<T>(_ body: (_ underlying: inout Underlying) -> T) -> T`
 
-The name `modify` is a Swift reserved-word-adjacent (coroutine `_modify`) but does not collide — it is a regular method with a closure parameter that captures `inout RawValue`. The comment explains why it is `package`-visible rather than `public`: consumer sites should use the `rawValue` coroutine instead. **Correct name + access level.**
+The name `modify` is a Swift reserved-word-adjacent (coroutine `_modify`) but does not collide — it is a regular method with a closure parameter that captures `inout Underlying`. The comment explains why it is `package`-visible rather than `public`: consumer sites should use the `underlying` coroutine instead. **Correct name + access level.**
 
 The associated comment (lines 49–54) notes the Swift 6.3 closure-parameter-lifetime gap for `~Escapable` types. This is a language-limitation claim — it belongs in Phase 3 workaround revalidation.
 
@@ -264,20 +264,20 @@ The seven axes:
 
 1. **Tag copyability**: `Tag: Copyable` OR `Tag: ~Copyable`
 2. **Tag escapability**: `Tag: Escapable` OR `Tag: ~Escapable`
-3. **RawValue copyability**: `RawValue: Copyable` OR `RawValue: ~Copyable`
-4. **RawValue escapability**: `RawValue: Escapable` OR `RawValue: ~Escapable`
-5. **Sendable conditional**: `RawValue: Sendable`
-6. **Literal conformances (test support only)**: `RawValue: ExpressibleBy*Literal`
-7. **Equatable / Hashable / Comparable / CustomStringConvertible / Codable / BitwiseCopyable**: `RawValue: X`
+3. **Underlying copyability**: `Underlying: Copyable` OR `Underlying: ~Copyable`
+4. **Underlying escapability**: `Underlying: Escapable` OR `Underlying: ~Escapable`
+5. **Sendable conditional**: `Underlying: Sendable`
+6. **Literal conformances (test support only)**: `Underlying: ExpressibleBy*Literal`
+7. **Equatable / Hashable / Comparable / CustomStringConvertible / Codable / BitwiseCopyable**: `Underlying: X`
 
 The phantom Tag contributes no runtime behavior; axes 1–2 only affect which generic extensions apply. The real discrimination happens on axes 3–4. The cross product of axes 3 × 4 produces four cells:
 
-| Cell | RawValue | Conformance shape | Use case | Coverage |
+| Cell | Underlying | Conformance shape | Use case | Coverage |
 |------|----------|-------------------|----------|----------|
 | A | `Copyable & Escapable` | Full conditional stack: Copyable, Sendable, Equatable, Hashable, Comparable, Codable, BitwiseCopyable, CustomStringConvertible | Typical: `UserID`, `Index<Element>`, `Hash.Value` | **Fully tested** — 5 MemoryLayout tests, all conformance tests, functor laws, total-order laws |
 | B | `~Copyable & Escapable` | Equatable + Hashable + Comparable + CustomStringConvertible (via SE-0499 ~Copyable support in compiler 6.4+); no Codable, no BitwiseCopyable, no Sendable synthesis | Move-only value domain: `Tagged<T, FileDescriptor>` | **Tested** — 5 Integration tests + 1 MemoryLayout test; SE-0499 conditional via `#if compiler(>=6.4)` |
-| C | `Copyable & ~Escapable` | `Tagged: ~Escapable` (derived) — no Sendable, no Codable, no BitwiseCopyable | Scoped-value domain: borrowed spans, lifetime-bounded views | **Structurally covered**; no dedicated test — declaring an `~Escapable Copyable` RawValue in tests triggers lifetime annotation requirements. Declaration correctness verified by compile-time conformance signatures. |
-| D | `~Copyable & ~Escapable` | `Tagged: ~Copyable, ~Escapable` (both derived) — minimal conformance set | Scoped + move-only: `Ownership.Borrow<T>` wrapped | **New Phase 1 test** (`Tagged admits ~Escapable RawValue in MemoryLayout`) covers layout; **Ownership.Borrow.\`Protocol\` conformance test** exercises this cell indirectly. |
+| C | `Copyable & ~Escapable` | `Tagged: ~Escapable` (derived) — no Sendable, no Codable, no BitwiseCopyable | Scoped-value domain: borrowed spans, lifetime-bounded views | **Structurally covered**; no dedicated test — declaring an `~Escapable Copyable` Underlying in tests triggers lifetime annotation requirements. Declaration correctness verified by compile-time conformance signatures. |
+| D | `~Copyable & ~Escapable` | `Tagged: ~Copyable, ~Escapable` (both derived) — minimal conformance set | Scoped + move-only: `Ownership.Borrow<T>` wrapped | **New Phase 1 test** (`Tagged admits ~Escapable Underlying in MemoryLayout`) covers layout; **Ownership.Borrow.\`Protocol\` conformance test** exercises this cell indirectly. |
 
 Axes 1–2 (Tag variation) are orthogonal: every extension specifies `Tag: ~Copyable & ~Escapable`, so the Tag axis does not partition the lattice into additional cells — it lifts the universality.
 
@@ -287,7 +287,7 @@ Axes 1–2 (Tag variation) are orthogonal: every extension specifies `Tag: ~Copy
 |------|----------|---------|
 | A | Fully tested | None |
 | B | Fully tested | None |
-| C | Structural only | **MEDIUM finding** — no dedicated runtime test for `~Escapable Copyable` RawValue. The conformance declaration (`Tagged: Escapable where ... RawValue: Escapable & ~Copyable`, Tagged.swift line 68) is compile-time-verified whenever a consumer instantiates it; no ecosystem consumer currently does. |
+| C | Structural only | **MEDIUM finding** — no dedicated runtime test for `~Escapable Copyable` Underlying. The conformance declaration (`Tagged: Escapable where ... Underlying: Escapable & ~Copyable`, Tagged.swift line 68) is compile-time-verified whenever a consumer instantiates it; no ecosystem consumer currently does. |
 | D | Layout tested + conformance tested | None (the Phase 1 Ownership.Borrow.\`Protocol\` test is in this cell) |
 
 Axis 7 (individual conformances): every conformance is exercised in the existing 54 pre-existing tests plus the 5 Phase 1 additions.
@@ -301,7 +301,7 @@ Consolidated from §3:
 | Candidate collision | Assessment |
 |---------------------|-----------|
 | `Tagged` vs Point-Free `Tagged` | Same vocabulary, disjoint implementations. Benefits readers. |
-| `Tagged.rawValue` vs `RawRepresentable.rawValue` | Same name, no conformance. Deliberate semantic alignment, no collision. |
+| `Tagged.underlying` vs `RawRepresentable.underlying` | Same name, no conformance. Deliberate semantic alignment, no collision. |
 | `Tag` generic parameter vs stdlib conventional `Tag` in `Result` | Same vocabulary, local scope. No collision. |
 | `map` method | Swift stdlib vocabulary (`Optional.map`, `Sequence.map`). Aligned. |
 | `retag` method | Novel in Swift stdlib; closest relatives are Rust's newtype renames. Coinage. |
@@ -315,7 +315,7 @@ Consolidated from §3:
 - **[PRIM-FOUND-001]** — Foundation-independent; this document cannot recommend any addition that imports Foundation.
 - **Ecosystem reach** — ~308 call sites in swift-primitives alone. 0.1.0 cements the API surface; additions are cheaper than removals.
 - **Tier placement** — with the 2026-04-24 conformance move (§2.6), swift-tagged-primitives is back at tier 0 (zero external dependencies). The `primitives` skill's Tier 0 enumeration remains accurate.
-- **`Tagged.modify` `package mutating` method** exists as a package-internal escape hatch. Removing it would require auditing in-package consumers (none currently) but preserves the `public var rawValue` coroutine as the sole mutable-access path.
+- **`Tagged.modify` `package mutating` method** exists as a package-internal escape hatch. Removing it would require auditing in-package consumers (none currently) but preserves the `public var underlying` coroutine as the sole mutable-access path.
 
 ## Outcome
 
@@ -323,7 +323,7 @@ Consolidated from §3:
 
 ### Merit
 
-`Tagged<Tag, RawValue>` occupies a **distinct, load-bearing position** in the ecosystem design space:
+`Tagged<Tag, Underlying>` occupies a **distinct, load-bearing position** in the ecosystem design space:
 
 - Vs Point-Free `swift-tagged`: different design priorities; this package adds `~Copyable`/`~Escapable` support, zero-cost verification, and Foundation-free operation at the cost of convenience conformances. Not substitutable.
 - Vs hand-rolled per-domain newtypes: collapses O(N) domain boilerplate to O(1) tag declarations, with shared functor operations.
@@ -344,7 +344,7 @@ The completeness analysis surfaces **one non-blocking cross-package finding** (e
 ### Lattice
 
 - **Cells A, B, D**: fully covered.
-- **Cell C (`~Escapable Copyable` RawValue)**: structural-only coverage. **Finding — MEDIUM**: add a test that declares a `Copyable & ~Escapable` RawValue (a borrowed span or similar) and verifies `Tagged.rawValue` access through a `borrowing` binding. Deferred to Phase 4 or post-0.1.0; the conformance signature is correct and the absent test is a coverage gap, not a correctness gap.
+- **Cell C (`~Escapable Copyable` Underlying)**: structural-only coverage. **Finding — MEDIUM**: add a test that declares a `Copyable & ~Escapable` Underlying (a borrowed span or similar) and verifies `Tagged.underlying` access through a `borrowing` binding. Deferred to Phase 4 or post-0.1.0; the conformance signature is correct and the absent test is a coverage gap, not a correctness gap.
 
 ### What this document does NOT decide
 
@@ -366,5 +366,5 @@ The completeness analysis surfaces **one non-blocking cross-package finding** (e
 - `swift-ownership-primitives/Sources/Ownership Borrow Primitives/Tagged+Ownership.Borrow.Protocol.swift` (conformance file, relocated 2026-04-24)
 - `Tests/Tagged Primitives Tests/Tagged Tests.swift` — 58 tests (54 pre-existing + 4 Phase 1 conformance additions; the Ownership.Borrow.\`Protocol\` conformance test moved to `swift-ownership-primitives/Tests/Ownership Primitives Tests/Tagged+Ownership.Borrow.Protocol Tests.swift`)
 - `Experiments/tagged-zero-cost-codegen/` (CONFIRMED, Swift 6.2) — codegen verification
-- `Experiments/tagged-noncopyable-rawvalue/` (CONFIRMED, Swift 6.2) — ~Copyable RawValue verification
+- `Experiments/tagged-noncopyable-rawvalue/` (CONFIRMED, Swift 6.2) — ~Copyable Underlying verification
 - `Experiments/tagged-literal-footgun-6-3-revalidation/` (PARTIAL, Swift 6.3.1) — footgun re-verified

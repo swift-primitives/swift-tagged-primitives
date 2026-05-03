@@ -19,7 +19,7 @@ However, the literal-conformance research established a **footgun pattern**:
 >
 > — [`tagged-literal-conformances-fresh-perspective.md`](./tagged-literal-conformances-fresh-perspective.md)
 
-The misfire: `.map(Bit.Index.init)` over a `Range<Byte.Index>` resolves to a cross-domain integer-literal init (`Bit.Index(integerLiteral: byteIndex.rawValue)`) instead of the domain-correct init. `@_disfavoredOverload` does not fully prevent it — the attribute affects ranking among eligible candidates, not eligibility itself.
+The misfire: `.map(Bit.Index.init)` over a `Range<Byte.Index>` resolves to a cross-domain integer-literal init (`Bit.Index(integerLiteral: byteIndex.underlying)`) instead of the domain-correct init. `@_disfavoredOverload` does not fully prevent it — the attribute affects ranking among eligible candidates, not eligibility itself.
 
 The footgun requires **both** ingredients in the same compilation unit:
 1. `Tagged` is `ExpressibleByIntegerLiteral` (the literal-init candidate)
@@ -43,7 +43,7 @@ When `Strideable` and `ExpressibleBy*Literal` are individually authorable in SLI
 
 | Conformance | Use frequency | Ergonomic value | Substitutability |
 |---|---|---|---|
-| `ExpressibleByIntegerLiteral` (and family) | Universal — every Tagged consumer reaches for `let user: User.ID = 42` | Massive — replaces `Tagged(__unchecked: (), 42)` boilerplate at every call site | Hard for consumers to author cleanly without `@_disfavoredOverload` discipline |
+| `ExpressibleByIntegerLiteral` (and family) | Universal — every Tagged consumer reaches for `let user: User.ID = 42` | Massive — replaces `Tagged(_unchecked: 42)` boilerplate at every call site | Hard for consumers to author cleanly without `@_disfavoredOverload` discipline |
 | `Strideable` (Tagged-generic) | Niche — useful for stride-aware Tagged types | Moderate — `for u in start...end` and `distance/advanced` operations | Already covered per-domain in `swift-index-primitives` (`Index: Strideable where Tag: ~Copyable`); consumer authoring of generic-Tagged Strideable is a 6-line extension |
 
 The asymmetry: literals carry roughly an order of magnitude more value-per-import than generic Strideable, because (a) literal usage is universal across consumers; (b) consumers cannot easily replicate the literal-conformance discipline themselves.
@@ -66,12 +66,12 @@ If we exclude Strideable from SLI, consumers who genuinely want stride semantics
    ```swift
    extension Tagged: Strideable
    where Tag: ~Copyable & ~Escapable,
-         RawValue: Strideable & Comparable & Equatable & Escapable {
-       public func distance(to other: Tagged) -> RawValue.Stride {
-           rawValue.distance(to: other.rawValue)
+         Underlying: Strideable & Comparable & Equatable & Escapable {
+       public func distance(to other: Tagged) -> Underlying.Stride {
+           underlying.distance(to: other.underlying)
        }
-       public func advanced(by n: RawValue.Stride) -> Tagged {
-           Tagged(__unchecked: (), rawValue.advanced(by: n))
+       public func advanced(by n: Underlying.Stride) -> Tagged {
+           Tagged(_unchecked: underlying.advanced(by: n))
        }
    }
    ```
@@ -80,7 +80,7 @@ If we exclude Strideable from SLI, consumers who genuinely want stride semantics
 If we exclude literals from SLI (the current state before this decision), consumers who want literal ergonomics:
 
 1. Use `Tagged Primitives Test Support` — but this target is for test code; production use is structurally inappropriate.
-2. Author per-domain `ExpressibleByIntegerLiteral` on each domain's typealias — requires `@_disfavoredOverload` discipline and per-RawValue-type effort.
+2. Author per-domain `ExpressibleByIntegerLiteral` on each domain's typealias — requires `@_disfavoredOverload` discipline and per-Underlying-type effort.
 
 The Strideable case has a clean per-domain pattern (already approved in swift-index-primitives) and a cheap consumer-side extension. The literal case has neither — Test Support is the only real alternative, and it's not production-grade.
 

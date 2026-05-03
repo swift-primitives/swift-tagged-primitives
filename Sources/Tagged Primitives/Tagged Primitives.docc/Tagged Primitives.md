@@ -9,11 +9,12 @@ Phantom-typed value wrappers for zero-cost type safety.
 
 ## Overview
 
-Tagged Primitives provides ``Tagged``, a generic struct that wraps a raw
-value with a compile-time phantom type parameter. The phantom `Tag` exists
-only in the type system — it adds no runtime overhead, no storage, and no
-indirection. What it adds is **type discrimination**: two values with the
-same raw type but different tags are incompatible at compile time.
+Tagged Primitives provides ``Tagged``, a generic struct that wraps an
+underlying value with a compile-time phantom type parameter. The phantom
+`Tag` exists only in the type system — it adds no runtime overhead, no
+storage, and no indirection. What it adds is **type discrimination**: two
+values with the same underlying type but different tags are incompatible
+at compile time.
 
 The tag is always an existing domain type — you do not create artificial
 tag enums. The domain itself becomes the discriminator:
@@ -44,17 +45,17 @@ properties of the type system itself.
 
 - **Zero-cost abstraction.** `Tagged` stores exactly one field. With
   `@inlinable`, the compiler eliminates the wrapper at optimization time.
-- **Operator non-forwarding is a feature.** Arithmetic on `RawValue` is
+- **Operator non-forwarding is a feature.** Arithmetic on `Underlying` is
   not automatically available on `Tagged`. This prevents mixing incompatible
   domains — a graph index and a bit count may both wrap `Ordinal`, but
   adding them is meaningless.
 - **Universal tag constraints.** Every extension uses `Tag: ~Copyable`,
   ensuring `Tagged` works for all tags — including tags parameterized by
   noncopyable element types like `Index<Element>` where `Element: ~Copyable`.
-- **Noncopyable raw values.** `Tagged<Tag, RawValue: ~Copyable>` supports
-  move-only wrapped values — a dimension neither stdlib's `RawRepresentable`
-  nor `pointfreeco/swift-tagged` admits, since both predate noncopyable
-  generics.
+- **Noncopyable underlying values.** `Tagged<Tag, Underlying: ~Copyable>`
+  supports move-only wrapped values — a dimension neither stdlib's
+  `RawRepresentable` nor `pointfreeco/swift-tagged` admits, since both
+  predate noncopyable generics.
 
 ## Topics
 

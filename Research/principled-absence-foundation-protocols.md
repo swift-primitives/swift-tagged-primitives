@@ -17,14 +17,14 @@ tier: 1
 #if canImport(Foundation)
 import Foundation
 
-extension Tagged: LocalizedError where RawValue: LocalizedError {
-    public var errorDescription: String? { rawValue.errorDescription }
-    public var failureReason: String? { rawValue.failureReason }
+extension Tagged: LocalizedError where Underlying: LocalizedError {
+    public var errorDescription: String? { underlying.errorDescription }
+    public var failureReason: String? { underlying.failureReason }
     // ...
 }
 
-extension Tagged where RawValue == UUID {
-    public init() { self.init(rawValue: UUID()) }
+extension Tagged where Underlying == UUID {
+    public init() { self.init(underlying: UUID()) }
 }
 #endif
 ```
@@ -41,7 +41,7 @@ This document treats both absences together because the rationale is identical: 
 
 ## Question
 
-Should `Tagged<Tag, RawValue>` conform to `LocalizedError` (when `RawValue: LocalizedError`)? Should it have UUID convenience inits (when `RawValue == UUID`)? If absent by default, what is the legitimate opt-in path?
+Should `Tagged<Tag, Underlying>` conform to `LocalizedError` (when `Underlying: LocalizedError`)? Should it have UUID convenience inits (when `Underlying == UUID`)? If absent by default, what is the legitimate opt-in path?
 
 ## Prior art
 
@@ -57,8 +57,8 @@ Should `Tagged<Tag, RawValue>` conform to `LocalizedError` (when `RawValue: Loca
 #if canImport(Foundation)
 import Foundation
 
-extension Tagged: LocalizedError where RawValue: LocalizedError { ... }
-extension Tagged where RawValue == UUID { public init() { ... } }
+extension Tagged: LocalizedError where Underlying: LocalizedError { ... }
+extension Tagged where Underlying == UUID { public init() { ... } }
 #endif
 ```
 
@@ -85,8 +85,8 @@ import Tagged_Primitives
 extension MyDomainError: LocalizedError where Storage: LocalizedError { ... }
 
 // Consumer authors UUID convenience init:
-extension Tagged where RawValue == UUID {
-    public init() { self.init(__unchecked: (), UUID()) }
+extension Tagged where Underlying == UUID {
+    public init() { self.init(_unchecked: UUID()) }
 }
 ```
 
@@ -106,7 +106,7 @@ extension Tagged where RawValue == UUID {
 
 **Status**: DECISION — Option C (hard absence; consumer-side conformance when desired).
 
-`Tagged<Tag, RawValue>: LocalizedError` and `Tagged where RawValue == UUID` convenience inits are **absent from main AND from SLI**. The Institute primitives layer does not ship Foundation conformances at any layer.
+`Tagged<Tag, Underlying>: LocalizedError` and `Tagged where Underlying == UUID` convenience inits are **absent from main AND from SLI**. The Institute primitives layer does not ship Foundation conformances at any layer.
 
 **Soft / Hard classification**: **HARD-BY-AXIOM** — `[PRIM-FOUND-001]` forbids Foundation in primitives, regardless of consumer intent. Consumers who want these conformances author them at their own layer.
 

@@ -38,12 +38,12 @@ let bitCount: Index<Bit>.Count = ...
 graphIndex + bitCount  // Should this compile?
 ```
 
-If Tagged auto-forwarded based on RawValue, this would compile—both wrap compatible primitive types. But it's semantically meaningless to add a graph index and a bit count. The phantom type exists precisely to prevent this mixing.
+If Tagged auto-forwarded based on Underlying, this would compile—both wrap compatible primitive types. But it's semantically meaningless to add a graph index and a bit count. The phantom type exists precisely to prevent this mixing.
 
-The solution is elegant: extend Tagged with RawValue constraints at each primitives level:
+The solution is elegant: extend Tagged with Underlying constraints at each primitives level:
 
 ```swift
-extension Tagged where RawValue == Ordinal, Tag: ~Copyable {
+extension Tagged where Underlying == Ordinal, Tag: ~Copyable {
     static func + (lhs: Self, rhs: Tagged<Tag, Cardinal>) -> Self { ... }
 }
 ```
@@ -63,7 +63,7 @@ The `Tag: ~Copyable` with matching `Tagged<Tag, Cardinal>` ensures both operands
 Every operator extension on Tagged includes `Tag: ~Copyable`:
 
 ```swift
-extension Tagged where RawValue == Ordinal, Tag: ~Copyable { ... }
+extension Tagged where Underlying == Ordinal, Tag: ~Copyable { ... }
 ```
 
 This seems redundant—why would a phantom type need a ~Copyable constraint? The answer lies in Swift's generic system. Without the constraint, the extension only applies when `Tag: Copyable`. With `Tag: ~Copyable`, it applies to all tags regardless of Copyable conformance.

@@ -8,7 +8,7 @@
 //     existing CustomStringConvertible conformance. Both should be authorable.
 //
 // (b) LOSSY-ROUNDTRIP DEMONSTRATION: even with the conformance, two Tagged
-//     values with the same RawValue but different phantom Tags produce
+//     values with the same Underlying but different phantom Tags produce
 //     IDENTICAL descriptions. The "lossless" claim holds within a single Tag
 //     (`T(v.description) == v` for the SAME T) but the description content
 //     does not encode the Tag — a String received without context cannot be
@@ -21,6 +21,7 @@
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
 import Tagged_Primitives_Standard_Library_Integration
 
 // MARK: - Domain setup
@@ -42,8 +43,8 @@ extension Order { typealias ID = Tagged<Order, Int> }
 guard let userFromString: User.ID = User.ID(String("42")) else {
     fatalError("init?(_:) returned nil for valid Int string")
 }
-precondition(userFromString.rawValue == 42, "init?(_:) parses correctly")
-precondition(userFromString.description == "42", "description property forwards to rawValue's description")
+precondition(userFromString.underlying == 42, "init?(_:) parses correctly")
+precondition(userFromString.description == "42", "description property forwards to underlying's description")
 
 print("tagged-no-losslessstringconvertible: SLI-shipped Tagged: LosslessStringConvertible works — both init?(_:) and description.")
 print("   Note: passing the literal String('42') wrapped in String(...) is the documented disambiguation when Tagged: ExpressibleByStringLiteral is also in SLI scope.")
@@ -61,7 +62,7 @@ print("tagged-no-losslessstringconvertible: within-domain roundtrip works (User.
 // MARK: - Lossy-roundtrip demonstration
 //
 // The description content does NOT encode the phantom Tag. Two Tagged values
-// with the same RawValue but different Tags produce identical descriptions.
+// with the same Underlying but different Tags produce identical descriptions.
 // A consumer receiving a String via wire/file/IPC has no way to know which
 // Tag to instantiate.
 
@@ -78,7 +79,7 @@ precondition(userVal.description == orderVal.description,
 let pickedAsUser: User.ID? = User.ID(serialized)
 let pickedAsOrder: Order.ID? = Order.ID(serialized)
 
-precondition(pickedAsUser?.rawValue == 99 && pickedAsOrder?.rawValue == 99,
+precondition(pickedAsUser?.underlying == 99 && pickedAsOrder?.underlying == 99,
              "the string '99' parses to both User.ID(99) and Order.ID(99) — receiver-type determines the Tag, not the string")
 
 print("tagged-no-losslessstringconvertible: lossy-from-Tagged-perspective confirmed. Description '99' can be parsed as User.ID OR Order.ID — Tag information is NOT in the string.")
@@ -89,9 +90,9 @@ struct Serialized: LosslessStringConvertible, Equatable {
     let storage: Tagged<User, Int>
     init?(_ description: String) {
         guard let raw = Int(description) else { return nil }
-        self.storage = Tagged<User, Int>(__unchecked: (), raw)
+        self.storage = Tagged<User, Int>(raw)
     }
-    var description: String { String(storage.rawValue) }
+    var description: String { String(storage.underlying) }
 }
 
 let wrapped = Serialized("100")!

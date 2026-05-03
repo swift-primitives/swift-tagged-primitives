@@ -15,7 +15,7 @@ tier: 1
 
 1. **`CustomPlaygroundDisplayConvertible`** — playground-specific debugging hook. Not relevant to production primitives infrastructure.
 2. **`CodingKeyRepresentable`** — niche protocol for using non-stdlib types as keys in encoded dictionaries. The use case is covered by the simpler conditional `Codable` we already main-ship.
-3. **Decodable double-try fallback** — pointfree's `Decodable` init first tries `RawValue(from: decoder)`, then falls back to decoding the raw value as a single-field container. The fallback path masks decoding errors and adds complexity for edge cases that rarely warrant it.
+3. **Decodable double-try fallback** — pointfree's `Decodable` init first tries `Underlying(from: decoder)`, then falls back to decoding the underlying value as a single-field container. The fallback path masks decoding errors and adds complexity for edge cases that rarely warrant it.
 
 This document treats the three together because each rationale is short and they share a "niche / not-worth-the-complexity" classification.
 
@@ -25,7 +25,7 @@ This document treats the three together because each rationale is short and they
 
 ## Question
 
-Should `Tagged<Tag, RawValue>` carry these niche conformances? If absent by default, what is the consumer alternative for each?
+Should `Tagged<Tag, Underlying>` carry these niche conformances? If absent by default, what is the consumer alternative for each?
 
 ## Prior art
 
@@ -39,7 +39,7 @@ Should `Tagged<Tag, RawValue>` carry these niche conformances? If absent by defa
 **Pointfree pattern**:
 ```swift
 extension Tagged: CustomPlaygroundDisplayConvertible {
-    public var playgroundDescription: Any { rawValue }
+    public var playgroundDescription: Any { underlying }
 }
 ```
 
@@ -56,18 +56,18 @@ extension Tagged: CustomPlaygroundDisplayConvertible {
 
 **Pointfree pattern**:
 ```swift
-extension Tagged: CodingKeyRepresentable where RawValue: CodingKeyRepresentable {
+extension Tagged: CodingKeyRepresentable where Underlying: CodingKeyRepresentable {
     public init?<T: CodingKey>(codingKey: T) {
-        guard let raw = RawValue(codingKey: codingKey) else { return nil }
-        self.init(__unchecked: (), raw)
+        guard let raw = Underlying(codingKey: codingKey) else { return nil }
+        self.init(_unchecked: raw)
     }
-    public var codingKey: CodingKey { rawValue.codingKey }
+    public var codingKey: CodingKey { underlying.codingKey }
 }
 ```
 
 **Rationale for absence**:
 1. **Niche use case**. `CodingKeyRepresentable` lets non-`String` / non-`Int` types serve as keys in encoded `[T: Value]` dictionaries. Production codecs (JSON, plist) generally use `String` keys; the protocol is rarely the right tool.
-2. **Already covered by the simpler conformance**. Tagged main ships `Codable` conditionally on `RawValue: Codable`. This handles the legitimate case (Tagged-as-value); the `CodingKeyRepresentable` extension would handle Tagged-as-dictionary-key, which is unusual.
+2. **Already covered by the simpler conformance**. Tagged main ships `Codable` conditionally on `Underlying: Codable`. This handles the legitimate case (Tagged-as-value); the `CodingKeyRepresentable` extension would handle Tagged-as-dictionary-key, which is unusual.
 3. **Implementation complexity outweighs demand**. The `init?(codingKey:)` failable-init pattern + the `codingKey` getter would require careful design to handle the parametric Tag; no clear consumer demand surfaced in the Institute primitives ecosystem.
 
 **Consumer alternative**: per-domain wrapper struct that conforms to `CodingKeyRepresentable` itself if the consumer genuinely needs Tagged-as-dictionary-key. Or use String / Int directly as the key type.
@@ -78,31 +78,31 @@ extension Tagged: CodingKeyRepresentable where RawValue: CodingKeyRepresentable 
 
 **Pointfree pattern**:
 ```swift
-extension Tagged: Decodable where RawValue: Decodable {
+extension Tagged: Decodable where Underlying: Decodable {
     public init(from decoder: Decoder) throws {
         do {
-            // First try: decode RawValue directly from a single-value container
-            let raw = try RawValue(from: decoder)
-            self.init(__unchecked: (), raw)
+            // First try: decode Underlying directly from a single-value container
+            let raw = try Underlying(from: decoder)
+            self.init(_unchecked: raw)
         } catch {
-            // Fallback: decode as a struct with a single `rawValue` field
+            // Fallback: decode as a struct with a single `underlying` field
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            let raw = try container.decode(RawValue.self, forKey: .rawValue)
-            self.init(__unchecked: (), raw)
+            let raw = try container.decode(Underlying.self, forKey: .underlying)
+            self.init(_unchecked: raw)
         }
     }
-    private enum CodingKeys: String, CodingKey { case rawValue }
+    private enum CodingKeys: String, CodingKey { case underlying }
 }
 ```
 
 **Rationale for absence**:
-1. **Masks decoding errors**. The `do { … } catch { … }` pattern swallows the original `RawValue(from:)` decoding error and reports the fallback's error instead. Consumers receive misleading error messages — the real decoding failure is hidden behind the fallback's keyed-container failure.
-2. **Two valid wire formats for the same logical type**. The double-try means `Tagged<Tag, Int>` accepts both `42` (single value) and `{"rawValue": 42}` (keyed) on decode. This is "lenient" but creates encode-decode asymmetry — encoding produces one shape, decoding accepts two.
-3. **Our simpler conditional is correct**. `extension Tagged: Codable where RawValue: Codable {}` lets Swift synthesize encode/decode from the struct's stored property `rawValue`. The synthesizer produces a *keyed* container `{"rawValue": N}` — empirically verified in the experiment, contrary to the initial expectation that it would be single-value. This shape is symmetric (encode and decode agree on the keyed shape) and produces single informative errors on decode failure. No fallback, no error masking.
+1. **Masks decoding errors**. The `do { … } catch { … }` pattern swallows the original `Underlying(from:)` decoding error and reports the fallback's error instead. Consumers receive misleading error messages — the real decoding failure is hidden behind the fallback's keyed-container failure.
+2. **Two valid wire formats for the same logical type**. The double-try means `Tagged<Tag, Int>` accepts both `42` (single value) and `{"underlying": 42}` (keyed) on decode. This is "lenient" but creates encode-decode asymmetry — encoding produces one shape, decoding accepts two.
+3. **Our simpler conditional is correct**. `extension Tagged: Codable where Underlying: Codable {}` lets Swift synthesize encode/decode from the struct's stored property `underlying`. The synthesizer produces a *keyed* container `{"underlying": N}` — empirically verified in the experiment, contrary to the initial expectation that it would be single-value. This shape is symmetric (encode and decode agree on the keyed shape) and produces single informative errors on decode failure. No fallback, no error masking.
 
-   **Note**: Consumers who need a *single-value* wire shape (e.g., to interop with non-Tagged systems that expect just the raw value) author a custom `Codable` conformance on a per-domain wrapper struct. The Tagged-level conditional doesn't try to bridge both shapes — that bridging is what the pointfree double-try did, at the cost of error-masking on the failure path.
+   **Note**: Consumers who need a *single-value* wire shape (e.g., to interop with non-Tagged systems that expect just the underlying value) author a custom `Codable` conformance on a per-domain wrapper struct. The Tagged-level conditional doesn't try to bridge both shapes — that bridging is what the pointfree double-try did, at the cost of error-masking on the failure path.
 
-**Consumer alternative**: if a consumer really needs the fallback behavior (e.g., for backward compatibility with a wire format that previously used `{"rawValue": …}`), they can author a custom `Decodable` extension on their domain wrapper.
+**Consumer alternative**: if a consumer really needs the fallback behavior (e.g., for backward compatibility with a wire format that previously used `{"underlying": …}`), they can author a custom `Decodable` extension on their domain wrapper.
 
 **Classification**: HARD absence — the fallback is an anti-pattern (masks errors). Not in SLI.
 

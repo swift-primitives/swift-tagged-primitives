@@ -19,7 +19,7 @@ import Definitions
 // MARK: - V1 — Baseline non-throwing init
 
 let v1: Tagged<V1User, UInt64> = .init(42)
-print("V1 baseline:", v1.rawValue)
+print("V1 baseline:", v1.underlying)
 
 // MARK: - V2 — Generic-throws, no validation closure (REFUTED: E inference fails)
 
@@ -30,7 +30,7 @@ print("V1 baseline:", v1.rawValue)
 // Diagnostic: "generic parameter 'E' could not be inferred"
 //
 // The default `{ _ in }` closure is consistent with any `E: Error` and
-// does not pin `E = Never`. Result-type context fixes Tag and RawValue
+// does not pin `E = Never`. Result-type context fixes Tag and Underlying
 // but provides no constraint on E. Swift's inference declines to default
 // E to Never on its own. The "throws(E) where E == Never ≡ non-throwing"
 // equivalence holds AFTER E is fixed — but inference doesn't fix it from
@@ -42,7 +42,7 @@ do {
     let v2Valid: Tagged<V2User, UInt64> = try .init(42) { v throws(V2Error) in
         guard v > 0 else { throw V2Error.notPositive }
     }
-    print("V2 with-validate (success):", v2Valid.rawValue)
+    print("V2 with-validate (success):", v2Valid.underlying)
 } catch {
     print("V2 with-validate (unexpected error):", error)
 }
@@ -53,7 +53,7 @@ do {
     let v2Invalid: Tagged<V2User, UInt64> = try .init(0) { v throws(V2Error) in
         guard v > 0 else { throw V2Error.notPositive }
     }
-    print("V2 with-validate (unexpected success):", v2Invalid.rawValue)
+    print("V2 with-validate (unexpected success):", v2Invalid.underlying)
 } catch {
     print("V2 with-validate (expected error):", error)
 }
@@ -61,13 +61,13 @@ do {
 // MARK: - V3 — Coexistence: V1-form and V2-form inits on the same Tag
 
 let v3Plain: Tagged<V3User, UInt64> = .init(99)
-print("V3 plain (V1-form resolves):", v3Plain.rawValue)
+print("V3 plain (V1-form resolves):", v3Plain.underlying)
 
 do {
     let v3Validated: Tagged<V3User, UInt64> = try .init(99) { v throws(V2Error) in
         guard v > 0 else { throw V2Error.notPositive }
     }
-    print("V3 validated (V2-form resolves):", v3Validated.rawValue)
+    print("V3 validated (V2-form resolves):", v3Validated.underlying)
 } catch {
     print("V3 validated (unexpected error):", error)
 }
@@ -78,9 +78,9 @@ let v4Source = V4Cardinal(7)
 
 do {
     let v4: V4Cardinal = try .init(v4Source) { v throws(V2Error) in
-        guard v.rawValue > 0 else { throw V2Error.notPositive }
+        guard v.underlying > 0 else { throw V2Error.notPositive }
     }
-    print("V4 GenericThrowsCarrier conformer (success):", v4.rawValue)
+    print("V4 GenericThrowsCarrier conformer (success):", v4.underlying)
 } catch {
     print("V4 GenericThrowsCarrier conformer (unexpected error):", error)
 }
@@ -101,7 +101,7 @@ struct V5Cardinal: Carrier {
     init(_ underlying: consuming V5Cardinal) {
         self._storage = underlying._storage
     }
-    var rawValue: UInt64 { _storage }
+    var underlying: UInt64 { _storage }
 }
 
 let v5Source = V5Cardinal(11)
@@ -111,18 +111,18 @@ do {
     // Definitions.swift — V5Cardinal didn't declare it; it's inherited
     // for free via the Carrier conformance. Zero migration cost.
     let v5: V5Cardinal = try .init(v5Source) { v throws(V2Error) in
-        guard v.rawValue > 0 else { throw V2Error.notPositive }
+        guard v.underlying > 0 else { throw V2Error.notPositive }
     }
-    print("V5 default-extension on Carrier (success):", v5.rawValue)
+    print("V5 default-extension on Carrier (success):", v5.underlying)
 } catch {
     print("V5 default-extension on Carrier (unexpected error):", error)
 }
 
 do {
     let v5Invalid: V5Cardinal = try .init(V5Cardinal(0)) { v throws(V2Error) in
-        guard v.rawValue > 0 else { throw V2Error.notPositive }
+        guard v.underlying > 0 else { throw V2Error.notPositive }
     }
-    print("V5 default-extension on Carrier (unexpected success):", v5Invalid.rawValue)
+    print("V5 default-extension on Carrier (unexpected success):", v5Invalid.underlying)
 } catch {
     print("V5 default-extension on Carrier (expected error):", error)
 }
@@ -137,9 +137,9 @@ let v6Source = V6Cardinal(13)
 // the requirement via the default.
 do {
     let v6: V6Cardinal = try .init(v6Source) { v throws(V2Error) in
-        guard v.rawValue > 0 else { throw V2Error.notPositive }
+        guard v.underlying > 0 else { throw V2Error.notPositive }
     }
-    print("V6 protocol-requirement + default impl (success):", v6.rawValue)
+    print("V6 protocol-requirement + default impl (success):", v6.underlying)
 } catch {
     print("V6 protocol-requirement + default impl (unexpected error):", error)
 }

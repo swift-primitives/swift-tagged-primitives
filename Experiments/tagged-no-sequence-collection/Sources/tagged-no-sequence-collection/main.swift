@@ -13,13 +13,22 @@
 //     algorithm.
 //
 // (c) HONEST DEFAULT (Option C): demonstrate the explicit-unwrap pattern
-//     `for x in tagged.rawValue { ... }` and how it preserves the
+//     `for x in tagged.underlying { ... }` and how it preserves the
 //     wrapper-boundary visibility.
 //
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
+
+// Local Carrier conformance for stdlib collection types — central Carrier SLI
+// deliberately skips these per swift-carrier-primitives/Research/sli-{array,set,dictionary}.md.
 import Tagged_Primitives_Standard_Library_Integration
+
+extension Array: @retroactive Carrier.`Protocol` { public typealias Underlying = Array<Element> }
+extension ContiguousArray: @retroactive Carrier.`Protocol` { public typealias Underlying = ContiguousArray<Element> }
+extension Dictionary: @retroactive Carrier.`Protocol` { public typealias Underlying = Dictionary<Key, Value> }
+extension Set: @retroactive Carrier.`Protocol` { public typealias Underlying = Set<Element> }
 
 // MARK: - Domain setup
 
@@ -50,7 +59,7 @@ precondition(roster.first == 10,  "Collection.first via subscript works")
 precondition(roster.count == 3,   "Collection.count works")
 precondition(roster[roster.startIndex] == 10, "Collection.subscript works")
 
-print("tagged-no-sequence-collection: SLI-shipped Tagged: Sequence + Tagged: Collection work — iteration, first, count, subscript, all forward to RawValue.")
+print("tagged-no-sequence-collection: SLI-shipped Tagged: Sequence + Tagged: Collection work — iteration, first, count, subscript, all forward to Underlying.")
 
 // MARK: - Wrapper-vs-content conflation
 //
@@ -73,24 +82,24 @@ print("tagged-no-sequence-collection: wrapper-vs-content conflation confirmed. s
 
 // MARK: - Honest pattern (Option C — preferred default)
 //
-// The consumer unwraps explicitly. Each .rawValue marks the type-boundary
+// The consumer unwraps explicitly. Each .underlying marks the type-boundary
 // crossing.
 
 var honestCollected: [Int] = []
-for x in roster.rawValue {           // explicit unwrap; reader knows: now operating on [Int]
+for x in roster.underlying {           // explicit unwrap; reader knows: now operating on [Int]
     honestCollected.append(x)
 }
 precondition(honestCollected == [10, 20, 30], "explicit-unwrap pattern produces same result")
 
 // Generic algorithms cannot accidentally consume Tagged via T: Sequence —
-// the consumer must explicitly call .rawValue first.
+// the consumer must explicitly call .underlying first.
 
 // _ = sumElements(roster)            // would still compile due to opt-in conformance
-let honestSum = sumElements(roster.rawValue) // explicit unwrap; honest about boundary
+let honestSum = sumElements(roster.underlying) // explicit unwrap; honest about boundary
 
 precondition(honestSum == taggedSum, "explicit-unwrap and opt-in produce same result; the difference is the call-site honesty")
 
-print("tagged-no-sequence-collection: explicit-unwrap pattern (roster.rawValue.reduce/forEach/etc.) marks the wrapper boundary at every crossing.")
+print("tagged-no-sequence-collection: explicit-unwrap pattern (roster.underlying.reduce/forEach/etc.) marks the wrapper boundary at every crossing.")
 
 // MARK: - Final summary
 
@@ -100,7 +109,7 @@ Empirical findings:
 - Option B authorable: YES (function-style witnesses for Sequence + Collection)
 - Wrapper-vs-content conflation: REAL (generic T: Sequence algorithms treat
   Tagged<Tag, [Int]> identically to [Int])
-- Option C (explicit .rawValue): preserves wrapper-boundary visibility at the
+- Option C (explicit .underlying): preserves wrapper-boundary visibility at the
   cost of slightly more verbose call sites
 
 Classification: SOFT absence. SLI opt-in is structurally fine; the
@@ -108,5 +117,5 @@ wrapper-vs-content conflation is the consumer's accepted trade-off.
 For Institute primitives consumers (where type-boundary visibility is
 load-bearing), the explicit-unwrap pattern is the preferred default —
 SLI opt-in is for consumers integrating with external Sequence/Collection-
-constrained APIs that they cannot refactor to take .rawValue.
+constrained APIs that they cannot refactor to take .underlying.
 """)

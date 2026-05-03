@@ -39,6 +39,7 @@ let package = Package(
             name: "Tagged Primitives Standard Library Integration",
             dependencies: [
                 "Tagged Primitives",
+                .product(name: "Carrier Primitives Standard Library Integration", package: "swift-carrier-primitives"),
             ]
         ),
         .target(

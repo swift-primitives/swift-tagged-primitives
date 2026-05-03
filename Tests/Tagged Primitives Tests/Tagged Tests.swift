@@ -1,4 +1,5 @@
 import Testing
+import Carrier_Primitives
 @testable import Tagged_Primitives
 import Tagged_Primitives_Standard_Library_Integration
 import Tagged_Primitives_Test_Support
@@ -26,33 +27,33 @@ extension `Tagged Tests`.Unit {
     // MARK: Construction
 
     @Test
-    func `init stores raw value`() {
+    func `init stores underlying value`() {
         let tagged: Tagged<Tag1, Int> = 42
-        #expect(tagged.rawValue == 42)
+        #expect(tagged.underlying == 42)
     }
 
     @Test
     func `integer literal construction`() {
         let tagged: Tagged<Tag1, Int> = 99
-        #expect(tagged.rawValue == 99)
+        #expect(tagged.underlying == 99)
     }
 
     @Test
     func `string literal construction`() {
         let tagged: Tagged<Tag1, String> = "hello"
-        #expect(tagged.rawValue == "hello")
+        #expect(tagged.underlying == "hello")
     }
 
     @Test
     func `boolean literal construction`() {
         let tagged: Tagged<Tag1, Bool> = true
-        #expect(tagged.rawValue == true)
+        #expect(tagged.underlying == true)
     }
 
     @Test
     func `float literal construction`() {
         let tagged: Tagged<Tag1, Double> = 3.14
-        #expect(tagged.rawValue == 3.14)
+        #expect(tagged.underlying == 3.14)
     }
 
     // MARK: Zero-Cost Layout
@@ -99,45 +100,45 @@ extension `Tagged Tests`.Unit {
         #expect(MemoryLayout<Tagged<Tag1, Int>>.alignment == MemoryLayout<Tagged<Tag2, Int>>.alignment)
     }
 
-    // MARK: rawValue
+    // MARK: underlying
 
     @Test
-    func `rawValue read returns stored value`() {
+    func `underlying read returns stored value`() {
         let tagged: Tagged<Tag1, Int> = 7
-        #expect(tagged.rawValue == 7)
+        #expect(tagged.underlying == 7)
     }
 
     @Test
-    func `rawValue modify mutates in place`() {
+    func `modify mutates underlying in place`() {
         var tagged: Tagged<Tag1, Int> = 10
-        tagged.rawValue += 5
-        #expect(tagged.rawValue == 15)
+        tagged.modify { $0 += 5 }
+        #expect(tagged.underlying == 15)
     }
 
     // MARK: modify (package-internal)
 
     @Test
-    func `modify mutates raw value via closure`() {
+    func `modify mutates underlying value via closure`() {
         var tagged: Tagged<Tag1, Int> = 10
         let result = tagged.modify { value in
             value *= 3
             return value
         }
         #expect(result == 30)
-        #expect(tagged.rawValue == 30)
+        #expect(tagged.underlying == 30)
     }
 
     // MARK: Equatable
 
     @Test
-    func `equal raw values are equal`() {
+    func `equal underlying values are equal`() {
         let a: Tagged<Tag1, Int> = 42
         let b: Tagged<Tag1, Int> = 42
         #expect(a == b)
     }
 
     @Test
-    func `different raw values are not equal`() {
+    func `different underlying values are not equal`() {
         let a: Tagged<Tag1, Int> = 1
         let b: Tagged<Tag1, Int> = 2
         #expect(a != b)
@@ -155,7 +156,7 @@ extension `Tagged Tests`.Unit {
     // MARK: Comparable
 
     @Test
-    func `less than compares raw values`() {
+    func `less than compares underlying values`() {
         let a: Tagged<Tag1, Int> = 1
         let b: Tagged<Tag1, Int> = 2
         #expect(a < b)
@@ -179,52 +180,52 @@ extension `Tagged Tests`.Unit {
     // MARK: map
 
     @Test
-    func `instance map transforms raw value preserving tag`() {
+    func `instance map transforms underlying value preserving tag`() {
         let tagged: Tagged<Tag1, Int> = 5
         let result = tagged.map { $0 * 2 }
         #expect(result == 10)
     }
 
     @Test
-    func `static map transforms raw value preserving tag`() {
+    func `static map transforms underlying value preserving tag`() {
         let tagged: Tagged<Tag1, Int> = 5
         let result = Tagged<Tag1, Int>.map(tagged) { $0 * 2 }
         #expect(result == 10)
     }
 
     @Test
-    func `map changes raw value type`() {
+    func `map changes underlying value type`() {
         let tagged: Tagged<Tag1, Int> = 42
         let result: Tagged<Tag1, String> = tagged.map { String($0) }
-        #expect(result.rawValue == "42")
+        #expect(result.underlying == "42")
     }
 
     // MARK: retag
 
     @Test
-    func `instance retag changes tag preserving raw value`() {
+    func `instance retag changes tag preserving underlying value`() {
         let tagged: Tagged<Tag1, Int> = 42
         let retagged: Tagged<Tag2, Int> = tagged.retag()
-        #expect(retagged.rawValue == 42)
+        #expect(retagged.underlying == 42)
     }
 
     @Test
-    func `static retag changes tag preserving raw value`() {
+    func `static retag changes tag preserving underlying value`() {
         let tagged: Tagged<Tag1, Int> = 42
         let retagged = Tagged<Tag1, Int>.retag(tagged, to: Tag2.self)
-        #expect(retagged.rawValue == 42)
+        #expect(retagged.underlying == 42)
     }
 
     // MARK: CustomStringConvertible
 
     @Test
-    func `description forwards to raw value`() {
+    func `description forwards to underlying value`() {
         let tagged: Tagged<Tag1, Int> = 42
         #expect(tagged.description == "42")
     }
 
     @Test
-    func `string description forwards to raw value`() {
+    func `string description forwards to underlying value`() {
         let tagged: Tagged<Tag1, String> = "hello"
         #expect(tagged.description == "hello")
     }
@@ -333,28 +334,28 @@ extension `Tagged Tests`.`Edge Case` {
         let b: Tagged<Tag2, Int> = a.retag()
         let c: Tagged<Tag3, Int> = b.retag()
         let direct: Tagged<Tag3, Int> = a.retag()
-        #expect(c.rawValue == direct.rawValue)
+        #expect(c.underlying == direct.underlying)
     }
 
-    // MARK: Boundary raw values
+    // MARK: Boundary underlying values
 
     @Test
-    func `zero raw value`() {
+    func `zero underlying value`() {
         let tagged: Tagged<Tag1, Int> = 0
-        #expect(tagged.rawValue == 0)
+        #expect(tagged.underlying == 0)
         #expect(tagged == 0)
     }
 
     @Test
-    func `negative raw value`() {
+    func `negative underlying value`() {
         let tagged: Tagged<Tag1, Int> = -42
-        #expect(tagged.rawValue == -42)
+        #expect(tagged.underlying == -42)
     }
 
     @Test
-    func `empty string raw value`() {
+    func `empty string underlying value`() {
         let tagged: Tagged<Tag1, String> = ""
-        #expect(tagged.rawValue.isEmpty)
+        #expect(tagged.underlying.isEmpty)
         #expect(tagged.description.isEmpty)
     }
 }
@@ -380,7 +381,7 @@ extension `Tagged Tests`.Integration {
         let b: Tagged<Tag1, Int> = 42
         let instanceResult: Tagged<Tag2, Int> = a.retag()
         let staticResult = Tagged<Tag1, Int>.retag(b, to: Tag2.self)
-        #expect(instanceResult.rawValue == staticResult.rawValue)
+        #expect(instanceResult.underlying == staticResult.underlying)
     }
 
     // MARK: Functor composition
@@ -389,14 +390,14 @@ extension `Tagged Tests`.Integration {
     func `map then retag composition`() {
         let tagged: Tagged<Tag1, Int> = 5
         let result: Tagged<Tag2, String> = tagged.map { String($0) }.retag()
-        #expect(result.rawValue == "5")
+        #expect(result.underlying == "5")
     }
 
     @Test
     func `retag then map composition`() {
         let tagged: Tagged<Tag1, Int> = 5
         let result: Tagged<Tag2, String> = tagged.retag(Tag2.self).map { String($0) }
-        #expect(result.rawValue == "5")
+        #expect(result.underlying == "5")
     }
 
     @Test
@@ -404,18 +405,18 @@ extension `Tagged Tests`.Integration {
         let tagged: Tagged<Tag1, Int> = 5
         let mapFirst: Tagged<Tag2, String> = tagged.map { String($0) }.retag()
         let retagFirst: Tagged<Tag2, String> = tagged.retag(Tag2.self).map { String($0) }
-        #expect(mapFirst.rawValue == retagFirst.rawValue)
+        #expect(mapFirst.underlying == retagFirst.underlying)
     }
 
     // MARK: Tag isolation
 
     @Test
-    func `different tags with same raw value are independent`() {
+    func `different tags with same underlying are independent`() {
         var a: Tagged<Tag1, Int> = 42
         let b: Tagged<Tag2, Int> = 42
-        a.rawValue = 99
-        #expect(a.rawValue == 99)
-        #expect(b.rawValue == 42)
+        a.modify { $0 = 99 }
+        #expect(a.underlying == 99)
+        #expect(b.underlying == 42)
     }
 
     // MARK: Collection interop
@@ -436,41 +437,41 @@ extension `Tagged Tests`.Integration {
         #expect(set.count == 2)
     }
 
-    // MARK: ~Copyable RawValue
+    // MARK: ~Copyable Underlying
 
     @Test
-    func `init and rawValue access with noncopyable raw value`() {
-        struct Resource: ~Copyable { let id: Int }
-        let tagged = Tagged<Tag1, Resource>(__unchecked: (), Resource(id: 99))
-        #expect(tagged.rawValue.id == 99)
+    func `init and underlying access with noncopyable underlying value`() {
+        struct Resource: ~Copyable, Carrier.`Protocol` { let id: Int; typealias Underlying = Self }
+        let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 99))
+        #expect(tagged.underlying.id == 99)
     }
 
     @Test
-    func `map with noncopyable raw value`() {
-        struct Resource: ~Copyable { let id: Int }
-        let tagged = Tagged<Tag1, Resource>(__unchecked: (), Resource(id: 7))
+    func `map with noncopyable underlying value`() {
+        struct Resource: ~Copyable, Carrier.`Protocol` { let id: Int; typealias Underlying = Self }
+        let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 7))
         let mapped: Tagged<Tag1, Int> = tagged.map { $0.id }
-        #expect(mapped.rawValue == 7)
+        #expect(mapped.underlying == 7)
     }
 
     @Test
-    func `retag with noncopyable raw value`() {
-        struct Resource: ~Copyable { let id: Int }
-        let tagged = Tagged<Tag1, Resource>(__unchecked: (), Resource(id: 42))
+    func `retag with noncopyable underlying value`() {
+        struct Resource: ~Copyable, Carrier.`Protocol` { let id: Int; typealias Underlying = Self }
+        let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 42))
         let retagged: Tagged<Tag2, Resource> = tagged.retag()
-        #expect(retagged.rawValue.id == 42)
+        #expect(retagged.underlying.id == 42)
     }
 
     @Test
-    func `modify with noncopyable raw value`() {
-        struct Resource: ~Copyable { var id: Int }
-        var tagged = Tagged<Tag1, Resource>(__unchecked: (), Resource(id: 1))
+    func `modify with noncopyable underlying value`() {
+        struct Resource: ~Copyable, Carrier.`Protocol` { var id: Int; typealias Underlying = Self }
+        var tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 1))
         tagged.modify { $0.id = 99 }
-        #expect(tagged.rawValue.id == 99)
+        #expect(tagged.underlying.id == 99)
     }
 
     @Test
-    func `MemoryLayout of noncopyable Tagged matches raw value`() {
+    func `MemoryLayout of noncopyable Tagged matches underlying value`() {
         struct Resource: ~Copyable { let id: Int; let priority: Int }
         #expect(MemoryLayout<Tagged<Tag1, Resource>>.size == MemoryLayout<Resource>.size)
         #expect(MemoryLayout<Tagged<Tag1, Resource>>.stride == MemoryLayout<Resource>.stride)
@@ -480,7 +481,7 @@ extension `Tagged Tests`.Integration {
     // MARK: Conditional Conformances — Sendable
 
     @Test
-    func `Tagged is Sendable when RawValue is Sendable`() {
+    func `Tagged is Sendable when Underlying is Sendable`() {
         func _requireSendable<T: Sendable>(_: T.Type) {}
         _requireSendable(Tagged<Tag1, Int>.self)
         _requireSendable(Tagged<Tag1, String>.self)
@@ -490,7 +491,7 @@ extension `Tagged Tests`.Integration {
     // MARK: Conditional Conformances — BitwiseCopyable
 
     @Test
-    func `Tagged is BitwiseCopyable when RawValue is BitwiseCopyable`() {
+    func `Tagged is BitwiseCopyable when Underlying is BitwiseCopyable`() {
         func _requireBitwiseCopyable<T: BitwiseCopyable>(_: T.Type) {}
         _requireBitwiseCopyable(Tagged<Tag1, Int>.self)
         _requireBitwiseCopyable(Tagged<Tag1, UInt64>.self)
@@ -502,7 +503,7 @@ extension `Tagged Tests`.Integration {
     // MARK: Conditional Conformances — Codable
 
     @Test
-    func `Tagged is Codable when RawValue is Codable`() {
+    func `Tagged is Codable when Underlying is Codable`() {
         func _requireCodable<T: Codable>(_: T.Type) {}
         _requireCodable(Tagged<Tag1, Int>.self)
         _requireCodable(Tagged<Tag1, String>.self)
@@ -512,24 +513,24 @@ extension `Tagged Tests`.Integration {
     // MARK: Conditional Conformances — Escapable lattice cell C
 
     @Test
-    func `Tagged is Escapable when RawValue is Escapable & ~Copyable`() {
-        // Lattice cell C: RawValue carries Escapable (default) and ~Copyable.
-        // The conformance `Tagged: Escapable where RawValue: Escapable & ~Copyable`
+    func `Tagged is Escapable when Underlying is Escapable & ~Copyable`() {
+        // Lattice cell C: Underlying carries Escapable (default) and ~Copyable.
+        // The conformance `Tagged: Escapable where Underlying: Escapable & ~Copyable`
         // (Tagged.swift line 69) is asserted at compile time via
         // _requireEscapable; the helper accepts ~Copyable types so the
         // resulting Tagged<Tag, Resource> (which is ~Copyable & Escapable
         // per cell C) is admitted.
         func _requireEscapable<T: Escapable & ~Copyable>(_: T.Type) {}
-        struct Resource: ~Copyable { let id: Int }
+        struct Resource: ~Copyable, Carrier.`Protocol` { let id: Int; typealias Underlying = Self }
         _requireEscapable(Tagged<Tag1, Resource>.self)
         #expect(Bool(true))
     }
 
-    // MARK: ~Escapable RawValue support (commit 1cf5396)
+    // MARK: ~Escapable Underlying support (commit 1cf5396)
 
     @Test
-    func `Tagged admits ~Escapable RawValue in MemoryLayout`() {
-        // A ~Copyable & ~Escapable RawValue should produce a Tagged
+    func `Tagged admits ~Escapable Underlying in MemoryLayout`() {
+        // A ~Copyable & ~Escapable Underlying should produce a Tagged
         // whose layout matches — the phantom Tag contributes nothing.
         struct Scoped: ~Copyable, ~Escapable { let raw: Int }
         #expect(MemoryLayout<Tagged<Tag1, Scoped>>.size == MemoryLayout<Scoped>.size)
@@ -557,10 +558,10 @@ extension `Tagged Tests`.Performance {
         // proof; this guards against runtime regressions.
         var sum: Int = 0
         for i in 0..<1_000 {
-            let tagged: Tagged<Tag1, Int> = .init(__unchecked: (), i)
+            let tagged: Tagged<Tag1, Int> = .init(_unchecked: i)
             let retagged: Tagged<Tag2, Int> = tagged.retag()
             let restored: Tagged<Tag1, Int> = retagged.retag()
-            sum &+= restored.rawValue
+            sum &+= restored.underlying
         }
         #expect(sum == (0..<1_000).reduce(0, &+))
     }

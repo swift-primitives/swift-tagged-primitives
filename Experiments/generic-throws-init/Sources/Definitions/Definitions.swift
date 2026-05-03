@@ -36,7 +36,7 @@
 //   H2 REFUTED — `Tagged<V2User, UInt64>(42)` (no validate argument) does
 //     not compile. Diagnostic: "generic parameter 'E' could not be inferred."
 //     The default `{ _ in }` closure is consistent with any `E: Error` and
-//     doesn't pin `E = Never`. Result-type context fixes Tag and RawValue
+//     doesn't pin `E = Never`. Result-type context fixes Tag and Underlying
 //     but provides no anchor for E. Swift's inference declines to default
 //     E to Never from a parameter-agnostic empty-closure default. The
 //     "throws(Never) ≡ non-throwing" equivalence holds *after* E is fixed,
@@ -138,10 +138,10 @@ public import Carrier_Primitives
 /// Tag for V1 — exercises the current Institute pattern.
 public enum V1User: ~Copyable, ~Escapable {}
 
-extension Tagged where Tag == V1User, RawValue == UInt64 {
+extension Tagged where Tag == V1User, Underlying == UInt64 {
     /// Non-throwing init wrapping `__unchecked:`.
     public init(_ value: UInt64) {
-        self.init(__unchecked: (), value)
+        self.init(_unchecked: value)
     }
 }
 
@@ -155,7 +155,7 @@ public enum V2Error: Error, Sendable {
     case notPositive
 }
 
-extension Tagged where Tag == V2User, RawValue == UInt64 {
+extension Tagged where Tag == V2User, Underlying == UInt64 {
     /// Generic-throws init: `E == Never` (default empty closure) ⇒ non-throwing
     /// call site; explicit validating closure ⇒ throws the closure's error type.
     public init<E: Error>(
@@ -163,7 +163,7 @@ extension Tagged where Tag == V2User, RawValue == UInt64 {
         validate: (UInt64) throws(E) -> Void = { _ in }
     ) throws(E) {
         try validate(value)
-        self.init(__unchecked: (), value)
+        self.init(_unchecked: value)
     }
 }
 
@@ -172,10 +172,10 @@ extension Tagged where Tag == V2User, RawValue == UInt64 {
 /// Tag for V3 — exercises whether the two init shapes can be defined together.
 public enum V3User: ~Copyable, ~Escapable {}
 
-extension Tagged where Tag == V3User, RawValue == UInt64 {
+extension Tagged where Tag == V3User, Underlying == UInt64 {
     /// Non-throwing init (V1 form).
     public init(_ value: UInt64) {
-        self.init(__unchecked: (), value)
+        self.init(_unchecked: value)
     }
 
     /// Generic-throws init (V2 form). Default empty closure intentionally
@@ -187,7 +187,7 @@ extension Tagged where Tag == V3User, RawValue == UInt64 {
         validate: (UInt64) throws(E) -> Void
     ) throws(E) {
         try validate(value)
-        self.init(__unchecked: (), value)
+        self.init(_unchecked: value)
     }
 }
 
@@ -235,7 +235,7 @@ public struct V4Cardinal: GenericThrowsCarrier {
         self._storage = raw
     }
 
-    public var rawValue: UInt64 { _storage }
+    public var underlying: UInt64 { _storage }
 }
 
 // MARK: - V7 — Can a public Carrier conformer hide its init?
@@ -369,5 +369,5 @@ public struct V6Cardinal: GenericThrowsCarrierWithDefault {
     // No explicit init<E: Error>(_, validate:) implementation —
     // the default extension implementation handles it.
 
-    public var rawValue: UInt64 { _storage }
+    public var underlying: UInt64 { _storage }
 }

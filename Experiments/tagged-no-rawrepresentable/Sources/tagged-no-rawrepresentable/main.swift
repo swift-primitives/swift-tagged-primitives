@@ -8,19 +8,20 @@
 //     attempt that fails to compile, including its diagnostic. Even with
 //     constraints attempting to scope the conformance to the
 //     fully-Copyable-and-Escapable cell, Tagged's `~Escapable` structural
-//     declaration propagates through the synthesized `rawValue` getter
+//     declaration propagates through the synthesized `underlying` getter
 //     witness — `RawRepresentable` is not ~Escapable-aware, so the
 //     conformance is not authorable in any constraint shape.
 //
 // (b) CONSUMER ALTERNATIVE (runtime): this main demonstrates the
 //     correct consumer pattern — a domain-specific struct that wraps
 //     Tagged and conforms to RawRepresentable on its own terms.
-//     Domain types provide their own validated `init?(rawValue:)`,
-//     forwarding to `Tagged.init(__unchecked:_:)` after validation.
+//     Domain types provide their own validated `init?(underlying:)`,
+//     forwarding to `Tagged.init(__unchecked:)` after validation.
 //
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
 
 // MARK: - Domain setup
 
@@ -36,10 +37,10 @@ struct UserID: RawRepresentable, Equatable {
     init?(rawValue: Int) {
         // Domain validation (consumer's responsibility): non-negative IDs only.
         guard rawValue >= 0 else { return nil }
-        self.storage = Tagged<User, Int>(__unchecked: (), rawValue)
+        self.storage = Tagged<User, Int>(rawValue)
     }
 
-    var rawValue: Int { storage.rawValue }
+    var rawValue: Int { storage.underlying }
 }
 
 // MARK: - Round-trip demonstration
@@ -47,7 +48,7 @@ struct UserID: RawRepresentable, Equatable {
 guard let validUser = UserID(rawValue: 42) else {
     fatalError("UserID(rawValue: 42) returned nil — domain validation rejected a valid value")
 }
-precondition(validUser.rawValue == 42, "round-trip via init?(rawValue:) preserves value")
+precondition(validUser.rawValue == 42, "round-trip via init?(underlying:) preserves value")
 
 guard let zeroUser = UserID(rawValue: 0) else {
     fatalError("UserID(rawValue: 0) returned nil — domain validation rejected boundary case")
@@ -56,7 +57,7 @@ precondition(zeroUser.rawValue == 0, "boundary value round-trips")
 
 // Domain validation rejects negative IDs — this is the correct semantics
 // for a failable RawRepresentable init, contrasting with the always-succeeds
-// init?(rawValue:) that an unconditional Tagged: RawRepresentable would
+// init?(underlying:) that an unconditional Tagged: RawRepresentable would
 // produce.
 let invalidUser = UserID(rawValue: -1)
 precondition(invalidUser == nil, "domain validation rejects negative IDs")
@@ -83,7 +84,7 @@ print("""
 Finding: Tagged itself cannot conform to RawRepresentable. Even with
 constraint shapes attempting to scope the conformance to the
 fully-Copyable-and-Escapable cell, Tagged's structural ~Escapable
-declaration propagates through the synthesized rawValue getter witness.
+declaration propagates through the synthesized underlying getter witness.
 The compiler diagnostic is reproduced in reject-test-conformance.swift.txt.
 
 Consequence: RawRepresentable is a HARD absence — not eligible for SLI

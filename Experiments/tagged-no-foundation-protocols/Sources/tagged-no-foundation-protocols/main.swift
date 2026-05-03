@@ -19,6 +19,7 @@
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
 // Note: NO `import Foundation` in this experiment. Tagged_Primitives main
 // is Foundation-free per [PRIM-FOUND-001].
 
@@ -31,8 +32,8 @@ import Tagged_Primitives
 enum User {}
 extension User { typealias ID = Tagged<User, Int> }
 
-let userID: User.ID = User.ID(__unchecked: (), 42)
-precondition(userID.rawValue == 42, "Tagged Primitives builds and works without Foundation")
+let userID: User.ID = User.ID(42)
+precondition(userID.underlying == 42, "Tagged Primitives builds and works without Foundation")
 
 print("tagged-no-foundation-protocols: Tagged Primitives main is Foundation-free — this experiment imports Tagged_Primitives WITHOUT importing Foundation, and Tagged works as expected.")
 
@@ -42,7 +43,7 @@ print("tagged-no-foundation-protocols: Tagged Primitives main is Foundation-free
 // Foundation, which we don't import. Even attempting to write the
 // conformance signature here would require `import Foundation`.
 //
-// Likewise, `Tagged where RawValue == UUID` convenience inits are unavailable
+// Likewise, `Tagged where Underlying == UUID` convenience inits are unavailable
 // because `UUID` is a Foundation type.
 
 print("tagged-no-foundation-protocols: LocalizedError and UUID convenience inits are unavailable on Tagged because the Institute primitives layer does not import Foundation.")
@@ -58,13 +59,13 @@ print("tagged-no-foundation-protocols: LocalizedError and UUID convenience inits
 //   import Tagged_Primitives
 //
 //   extension Tagged: LocalizedError
-//   where Tag: ~Copyable & ~Escapable, RawValue: LocalizedError & Escapable {
-//       public var errorDescription: String? { rawValue.errorDescription }
-//       public var failureReason: String? { rawValue.failureReason }
+//   where Tag: ~Copyable & ~Escapable, Underlying: LocalizedError & Escapable {
+//       public var errorDescription: String? { underlying.errorDescription }
+//       public var failureReason: String? { underlying.failureReason }
 //   }
 //
-//   extension Tagged where RawValue == UUID {
-//       public init() { self.init(__unchecked: (), UUID()) }
+//   extension Tagged where Underlying == UUID {
+//       public init() { self.init(UUID()) }
 //   }
 //
 // The conformance and Foundation import live in the consumer's package,

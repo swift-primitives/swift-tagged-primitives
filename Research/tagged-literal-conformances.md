@@ -33,7 +33,7 @@ Deeper analysis (`revisiting-tagged-production-literal-conformances.md`, `labele
 
 ## Question
 
-Should `Tagged<Tag, RawValue>` conform to `ExpressibleByIntegerLiteral` and `ExpressibleByFloatLiteral` in production code?
+Should `Tagged<Tag, Underlying>` conform to `ExpressibleByIntegerLiteral` and `ExpressibleByFloatLiteral` in production code?
 
 ## Analysis
 
@@ -41,7 +41,7 @@ Should `Tagged<Tag, RawValue>` conform to `ExpressibleByIntegerLiteral` and `Exp
 
 83+ distinct `Tagged` typealiases exist across 30+ packages. They fall into these categories:
 
-| Category | Examples | RawValue | Count | Wants literals? |
+| Category | Examples | Underlying | Count | Wants literals? |
 |----------|----------|----------|-------|-----------------|
 | Coordinates | `Coordinate.X<Space>`, `.Y`, `.Z`, `.W` | `Double`, `Float`, generic `Scalar` | ~20 | Yes |
 | Displacements | `Displacement.X<Space>`, `.Y`, `.Z` | `Double`, `Float`, generic `Scalar` | ~15 | Yes |
@@ -92,20 +92,20 @@ When the blanket `ExpressibleByIntegerLiteral` conformance is available (current
 
 ```swift
 extension Tagged: ExpressibleByIntegerLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByIntegerLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByIntegerLiteral {
     @_disfavoredOverload
     @inlinable
-    public init(integerLiteral value: RawValue.IntegerLiteralType) {
-        self = .init(__unchecked: (), RawValue(integerLiteral: value))
+    public init(integerLiteral value: Underlying.IntegerLiteralType) {
+        self = .init(_unchecked: Underlying(integerLiteral: value))
     }
 }
 
 extension Tagged: ExpressibleByFloatLiteral
-where Tag: ~Copyable, RawValue: ExpressibleByFloatLiteral {
+where Tag: ~Copyable, Underlying: ExpressibleByFloatLiteral {
     @_disfavoredOverload
     @inlinable
-    public init(floatLiteral value: RawValue.FloatLiteralType) {
-        self.init(__unchecked: (), RawValue(floatLiteral: value))
+    public init(floatLiteral value: Underlying.FloatLiteralType) {
+        self.init(_unchecked: Underlying(floatLiteral: value))
     }
 }
 ```
@@ -113,7 +113,7 @@ where Tag: ~Copyable, RawValue: ExpressibleByFloatLiteral {
 **Advantages**:
 - All dimensional types (`X`, `Y`, `Width`, `Height`, `Degree`, `Radian`, ...) gain natural literal syntax
 - Default arguments work: `minX: W3C_SVG2.X = 0`
-- Eliminates `__unchecked:` boilerplate for constant initialization
+- Eliminates `_unchecked:` boilerplate for constant initialization
 - Matches `Scale` and `Interval.Unit` which already have these conformances
 - `@_disfavoredOverload` ensures explicit constructors are preferred when available
 
@@ -132,7 +132,7 @@ The v1.0 analysis claimed `Ordinal` does not conform to `ExpressibleByIntegerLit
 
 ```swift
 extension Tagged: ExpressibleByIntegerLiteral
-where Tag: Spatial, RawValue: ExpressibleByIntegerLiteral { ... }
+where Tag: Spatial, Underlying: ExpressibleByIntegerLiteral { ... }
 ```
 
 **Advantages**:
@@ -151,7 +151,7 @@ Fix all callsites to use explicit construction:
 
 ```swift
 minX: W3C_SVG2.X = .init(0)           // Spatial tags have init(_:)
-let r = Radian(__unchecked: (), value) // Non-Spatial tags need __unchecked
+let r = Radian(_unchecked: value) // Non-Spatial tags need _unchecked
 ```
 
 **Advantages**:
@@ -162,7 +162,7 @@ let r = Radian(__unchecked: (), value) // Non-Spatial tags need __unchecked
 **Disadvantages**:
 - Ergonomic burden on the most common use case (dimensional types)
 - `.init(0)` in default arguments is awkward
-- `__unchecked:` for angles is both verbose and misleading (the value isn't "unchecked" in any meaningful sense)
+- `_unchecked:` for angles is both verbose and misleading (the value isn't "unchecked" in any meaningful sense)
 - Diverges from `Scale` and `Interval.Unit` which already have literal conformances
 - Test code requires a separate support module just for literals
 
@@ -176,7 +176,7 @@ Add a new protocol `Tagged.LiteralInitializable` or extend `Spatial` to cover an
 
 **Disadvantages**:
 - Adds protocol complexity for marginal benefit over Option A
-- ~~The `RawValue: ExpressibleByIntegerLiteral` constraint already provides natural gating~~ (v2.0: this claim was incorrect — Ordinal satisfies the constraint)
+- ~~The `Underlying: ExpressibleByIntegerLiteral` constraint already provides natural gating~~ (v2.0: this claim was incorrect — Ordinal satisfies the constraint)
 
 ### Comparison
 
@@ -195,7 +195,7 @@ Add a new protocol `Tagged.LiteralInitializable` or extend `Spatial` to cover an
 
 1. `Tagged` is `~Copyable` — conformances must use `where Tag: ~Copyable`
 2. `@_disfavoredOverload` should be applied so explicit constructors take priority in overload resolution
-3. Must not break existing callsites that use `__unchecked:` or `init(_:)` for Spatial tags
+3. Must not break existing callsites that use `_unchecked:` or `init(_:)` for Spatial tags
 4. The conformance already exists in test support and has been validated across the test suite
 5. **NEW (v2.0)**: The conformance MUST NOT enable literal type inference on `Tagged<_, Ordinal>` types, because cross-domain conversion inits (like byte-to-bit) create silent overload resolution footguns
 
@@ -207,7 +207,7 @@ Add a new protocol `Tagged.LiteralInitializable` or extend `Spatial` to cover an
 
 **v3.0 rationale** (supersedes v2.0):
 
-1. **The v2.0 conclusion was overly broad.** The footgun requires a non-identity numeric transformation — the confirmed crash (`Bit.Index ×8`) produced wrong VALUES. But most unlabeled cross-domain inits (6 of 9) are identity-numeric — they preserve the raw value and produce correct results even under unexpected type inference paths.
+1. **The v2.0 conclusion was overly broad.** The footgun requires a non-identity numeric transformation — the confirmed crash (`Bit.Index ×8`) produced wrong VALUES. But most unlabeled cross-domain inits (6 of 9) are identity-numeric — they preserve the underlying value and produce correct results even under unexpected type inference paths.
 
 2. **Only 3 non-identity inits exist** (exhaustively verified across 61+ packages): `Bit.Index.init(_ : Index<UInt8>)` (×8 scaling), `Memory.Shift.init(_ : Cardinal)` (narrowing to UInt8), `Affine.Discrete.Ratio.init(_ : Tagged<To, Cardinal>)` (reinterpretation). All have 0 `.map(Type.init)` call sites, making labeling cost-free.
 

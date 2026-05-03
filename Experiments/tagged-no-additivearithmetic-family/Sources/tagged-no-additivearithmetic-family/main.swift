@@ -21,6 +21,7 @@
 // Verified: Swift 6.3.1 (Apple Swift on macOS) — 2026-04-30.
 
 import Tagged_Primitives
+import Carrier_Primitives_Standard_Library_Integration
 
 // MARK: - Domain setup
 
@@ -34,31 +35,33 @@ extension User { typealias ID = Tagged<User, Int> }
 // AdditiveArithmetic determines the family's classification.
 
 extension Tagged: @retroactive AdditiveArithmetic
-where Tag: ~Copyable & ~Escapable, RawValue: AdditiveArithmetic & Escapable {
-    public static var zero: Tagged { Tagged(__unchecked: (), .zero) }
+where Tag: ~Copyable & ~Escapable,
+      Underlying: AdditiveArithmetic & Carrier.`Protocol` & Escapable,
+      Underlying.Underlying == Underlying {
+    public static var zero: Tagged { Tagged(.zero) }
 
     public static func + (lhs: Tagged, rhs: Tagged) -> Tagged {
-        Tagged(__unchecked: (), lhs.rawValue + rhs.rawValue)
+        Tagged(lhs.underlying + rhs.underlying)
     }
 
     public static func - (lhs: Tagged, rhs: Tagged) -> Tagged {
-        Tagged(__unchecked: (), lhs.rawValue - rhs.rawValue)
+        Tagged(lhs.underlying - rhs.underlying)
     }
 }
 
 // If we reach this point at runtime, the conformance compiled.
 
-let userA: User.ID = User.ID(__unchecked: (), 7)
-let userB: User.ID = User.ID(__unchecked: (), 5)
+let userA: User.ID = User.ID(7)
+let userB: User.ID = User.ID(5)
 
 let userSum = userA + userB
-precondition(userSum.rawValue == 12, "+ forwards to Int.+ correctly")
+precondition(userSum.underlying == 12, "+ forwards to Int.+ correctly")
 
 let userDiff = userA - userB
-precondition(userDiff.rawValue == 2, "- forwards to Int.- correctly")
+precondition(userDiff.underlying == 2, "- forwards to Int.- correctly")
 
 let zero: User.ID = .zero
-precondition(zero.rawValue == 0, "static var zero produces Tagged(0)")
+precondition(zero.underlying == 0, "static var zero produces Tagged(0)")
 
 print("tagged-no-additivearithmetic-family: Option B (SLI-style opt-in) COMPILES — function-style witnesses authorable.")
 
@@ -80,7 +83,7 @@ func processUsers(start: User.ID, count: User.ID) -> User.ID {
 }
 
 let nonsensicalUser = processUsers(start: userA, count: userB)
-precondition(nonsensicalUser.rawValue == 12, "domain-blind operation 'works' — the wrapper has been silenced")
+precondition(nonsensicalUser.underlying == 12, "domain-blind operation 'works' — the wrapper has been silenced")
 
 print("tagged-no-additivearithmetic-family: domain-blind footgun confirmed. processUsers(start:count:) compiles and runs even though adding two UserIDs has no domain meaning.")
 
@@ -94,7 +97,7 @@ print("tagged-no-additivearithmetic-family: domain-blind footgun confirmed. proc
 
 extension User.ID {
     init(integerLiteral value: Int) {
-        self = User.ID(__unchecked: (), value)
+        self = User.ID(value)
     }
 }
 
@@ -104,7 +107,7 @@ extension User.ID {
 // they thought was a domain-typed value.
 
 let arithmeticUser = userA + User.ID(integerLiteral: 5)
-precondition(arithmeticUser.rawValue == 12, "literal + AdditiveArithmetic compounding produces Int arithmetic")
+precondition(arithmeticUser.underlying == 12, "literal + AdditiveArithmetic compounding produces Int arithmetic")
 
 print("tagged-no-additivearithmetic-family: arithmetic + literal conformance compounding confirmed. userA + literal(5) reduces to Int arithmetic with domain-blind semantics.")
 

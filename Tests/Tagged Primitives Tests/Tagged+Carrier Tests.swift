@@ -12,17 +12,18 @@ private enum Tag3 {}
 
 // MARK: - Generic dispatch helpers
 
-// A function constrained on `Carrier<Int>` — accepts any value whose
-// Underlying type chain resolves to Int. Used to verify the cascade.
-private func describeIntCarrier<C: Carrier>(_ c: C) -> Int
+// A function constrained on `Carrier.`Protocol`<Int>` — accepts any value
+// whose Underlying type chain resolves to Int. Used to verify the cascade.
+private func describeIntCarrier<C: Carrier.`Protocol`>(_ c: C) -> Int
 where C.Underlying == Int {
     c.underlying
 }
 
-// A function constrained on bare `Carrier` (no Underlying constraint) —
-// accepts any Carrier. Used to verify Form-D generic algorithms.
-// Returns the Underlying type name as a string for runtime assertion.
-private func describeAnyCarrier<C: Carrier>(_ c: C) -> String {
+// A function constrained on bare `Carrier.`Protocol`` (no Underlying
+// constraint) — accepts any Carrier. Used to verify Form-D generic
+// algorithms. Returns the Underlying type name as a string for runtime
+// assertion.
+private func describeAnyCarrier<C: Carrier.`Protocol`>(_ c: C) -> String {
     String(describing: C.Underlying.self)
 }
 
@@ -69,7 +70,7 @@ extension `Tagged + Carrier Tests`.`Edge Case` {
     func `triple-nested Tagged cascades through to innermost Underlying`() {
         // Three-level wrapping: Tagged<X, Tagged<Y, Tagged<Z, Int>>>.
         // Cascading literal init via ExpressibleByIntegerLiteral works
-        // recursively because each Tagged layer conforms when its RawValue
+        // recursively because each Tagged layer conforms when its Underlying
         // does — Int → Tagged<Tag3, Int> → Tagged<Tag2, Tagged<Tag3, Int>>
         // → Tagged<Tag1, Tagged<Tag2, Tagged<Tag3, Int>>>.
         let outer: Tagged<Tag1, Tagged<Tag2, Tagged<Tag3, Int>>> = 99
@@ -82,7 +83,7 @@ extension `Tagged + Carrier Tests`.`Edge Case` {
         // The Carrier init transfers ownership end-to-end across all levels.
         let constructed: Tagged<Tag1, Tagged<Tag2, Tagged<Tag3, Int>>> = .init(7)
         #expect(constructed.underlying == 7)
-        #expect(constructed.rawValue.rawValue.rawValue == 7)
+        #expect(constructed.underlying.underlying.underlying == 7)
     }
 }
 
@@ -102,7 +103,7 @@ extension `Tagged + Carrier Tests`.Integration {
     @Test
     func `single-level Tagged round-trips through Carrier init`() {
         let constructed: Tagged<Tag1, Int> = .init(99)
-        #expect(constructed.rawValue == 99)
+        #expect(constructed.underlying == 99)
         #expect(constructed.underlying == 99)
     }
 
@@ -119,7 +120,7 @@ extension `Tagged + Carrier Tests`.Integration {
     func `nested Tagged init reconstructs the chain from raw underlying`() {
         let constructed: Tagged<Tag1, Tagged<Tag2, Int>> = .init(13)
         #expect(constructed.underlying == 13)
-        #expect(constructed.rawValue.rawValue == 13)
+        #expect(constructed.underlying.underlying == 13)
     }
 
     // MARK: Form-D generic algorithm — accepts any Carrier
@@ -148,7 +149,7 @@ extension `Tagged + Carrier Tests`.Performance {
         // a direct underlying-value access (no boxing, no virtual dispatch).
         var sum: Int = 0
         for i in 0..<1_000 {
-            let tagged = Tagged<Tag1, Int>(__unchecked: (), i)
+            let tagged = Tagged<Tag1, Int>(_unchecked: i)
             sum &+= describeIntCarrier(tagged)
         }
         #expect(sum == (0..<1_000).reduce(0, &+))
