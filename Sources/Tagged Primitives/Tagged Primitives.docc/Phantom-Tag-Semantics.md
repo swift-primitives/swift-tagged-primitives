@@ -14,11 +14,9 @@ jobs. Understanding the difference is how you pick the right primitive.
 ```swift
 // swift-tagged-primitives (this package)
 public struct Tagged<Tag: ~Copyable, Underlying: ~Copyable>: ~Copyable {
-    @usableFromInline package var _storage: Underlying
+    public package(set) var underlying: Underlying
 }
-extension Tagged: Carrier.`Protocol` where Underlying: Carrier.`Protocol` {
-    public var underlying: Self.Underlying { _read { yield _storage.underlying } }
-}
+extension Tagged: Carrier.`Protocol` { /* underlying satisfies the protocol */ }
 
 // swift-property-primitives
 public struct Property<Tag, Base: ~Copyable>: ~Copyable {
@@ -29,7 +27,7 @@ extension Property where Base: ~Copyable {
 }
 ```
 
-Both wrap a value (`_storage` / `_base`), both discriminate on a phantom
+Both wrap a value (`underlying` / `_base`), both discriminate on a phantom
 `Tag`. Parameter order is identical: discriminator first, value second.
 
 So what distinguishes them?

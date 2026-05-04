@@ -19,29 +19,29 @@ where Tag: ~Copyable & ~Escapable, Underlying: Collection & Escapable {
 
     /// The position of the first element in a non-empty wrapped collection.
     @inlinable
-    public var startIndex: Underlying.Index { _storage.startIndex }
+    public var startIndex: Underlying.Index { underlying.startIndex }
 
     /// The collection's "past the end" position.
     @inlinable
-    public var endIndex: Underlying.Index { _storage.endIndex }
+    public var endIndex: Underlying.Index { underlying.endIndex }
 
     /// Accesses the element at the specified position.
     ///
     /// - Parameter position: A valid index of the wrapped collection.
     /// - Returns: The element at `position`, forwarded from
-    ///   `_storage[position]`.
+    ///   `underlying[position]`.
     @inlinable
     public subscript(position: Underlying.Index) -> Underlying.Element {
-        _storage[position]
+        underlying[position]
     }
 
     /// Returns the position immediately after the given index.
     ///
     /// - Parameter i: A valid index of the wrapped collection.
     /// - Returns: The next valid index, forwarded from
-    ///   `_storage.index(after: i)`.
+    ///   `underlying.index(after: i)`.
     @inlinable
     public func index(after i: Underlying.Index) -> Underlying.Index {
-        _storage.index(after: i)
+        underlying.index(after: i)
     }
 }

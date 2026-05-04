@@ -47,16 +47,12 @@ where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable {
     /// `Underlying` is the immediate generic parameter — no cascade.
     public typealias Underlying = Underlying
 
-    /// Borrowing access to the wrapped value via a `_read` coroutine.
-    /// Yields directly out of `_storage`; supports both `Copyable` and
-    /// `~Copyable` Underlying.
-    ///
-    /// The `@_lifetime(borrow self)` annotation lives on the protocol
-    /// declaration; conformers do not repeat it.
-    public var underlying: Underlying {
-        @_lifetime(borrow self)
-        _read { yield _storage }
-    }
+    // The protocol's `var underlying { borrowing get }` requirement is
+    // satisfied directly by the stored property declared on `Tagged`. The
+    // stored shape is load-bearing: it preserves direct-storage ownership
+    // semantics (consume-extract on a consumed `tagged`), which a computed
+    // `_read` accessor would lose because computed-accessor results are
+    // not "storage" in Swift's ownership model.
 
     /// Constructs a tagged carrier by directly storing the consumed
     /// underlying value. No transitive Carrier construction — the
