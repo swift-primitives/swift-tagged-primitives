@@ -1,6 +1,7 @@
-import Testing
-@testable import Tagged_Primitives
 import Tagged_Primitives_Standard_Library_Integration
+import Testing
+
+@testable import Tagged_Primitives
 
 private enum Tag1 {}
 private enum Tag2 {}
@@ -95,7 +96,10 @@ extension `Tagged + LosslessStringConvertible Tests`.Performance {
         for i in 0..<1_000 {
             let original: Tagged<Tag1, Int> = Tagged<Tag1, Int>(_unchecked: i)
             if let reconstructed: Tagged<Tag1, Int> = Tagged<Tag1, Int>(original.description),
-               reconstructed == original { ok += 1 }
+                reconstructed == original
+            {
+                ok += 1
+            }
         }
         #expect(ok == 1_000)
     }

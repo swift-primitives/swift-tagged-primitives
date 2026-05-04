@@ -1,8 +1,9 @@
-import Testing
 import Carrier_Primitives
 import Carrier_Primitives_Standard_Library_Integration
-@testable import Tagged_Primitives
 import Tagged_Primitives_Standard_Library_Integration
+import Testing
+
+@testable import Tagged_Primitives
 
 // Tagged is generic — parallel namespace pattern per [SWIFT-TEST-003].
 
@@ -71,8 +72,7 @@ extension `Tagged + Carrier Tests`.Unit {
     func `nested Tagged exposes immediate wrapped type as Underlying`() {
         // Compile-time assertion: Tagged<Tag1, Tagged<Tag2, Int>>.Underlying
         // == Tagged<Tag2, Int> (the IMMEDIATE wrapped type, not the cascade-end Int).
-        let _: Tagged<Tag1, Tagged<Tag2, Int>>.Underlying.Type
-            = Tagged<Tag2, Int>.self
+        let _: Tagged<Tag1, Tagged<Tag2, Int>>.Underlying.Type = Tagged<Tag2, Int>.self
     }
 }
 
@@ -94,9 +94,9 @@ extension `Tagged + Carrier Tests`.`Edge Case` {
         // recurses through each Tagged layer's literal init independently
         // of the Carrier conformance.
         let outer: Tagged<Tag1, Tagged<Tag2, Tagged<Tag3, Int>>> = 99
-        let middle = outer.underlying    // Tagged<Tag2, Tagged<Tag3, Int>>
-        let inner  = middle.underlying   // Tagged<Tag3, Int>
-        let value  = inner.underlying    // Int
+        let middle = outer.underlying  // Tagged<Tag2, Tagged<Tag3, Int>>
+        let inner = middle.underlying  // Tagged<Tag3, Int>
+        let value = inner.underlying  // Int
         #expect(value == 99)
     }
 

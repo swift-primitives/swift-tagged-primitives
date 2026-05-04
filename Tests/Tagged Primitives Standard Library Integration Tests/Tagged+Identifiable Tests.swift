@@ -1,6 +1,7 @@
-import Testing
-@testable import Tagged_Primitives
 import Tagged_Primitives_Standard_Library_Integration
+import Testing
+
+@testable import Tagged_Primitives
 
 private enum Tag1 {}
 private enum Tag2 {}
@@ -39,7 +40,7 @@ extension `Tagged + Identifiable Tests`.Unit {
     func `id type matches Underlying ID type`() {
         let key = DomainKey(id: 7)
         let tagged: Tagged<Tag1, DomainKey> = Tagged<Tag1, DomainKey>(_unchecked: key)
-        let _: UInt64 = tagged.id   // compiles only if Tagged.ID == DomainKey.ID == UInt64
+        let _: UInt64 = tagged.id  // compiles only if Tagged.ID == DomainKey.ID == UInt64
     }
 }
 
@@ -54,7 +55,7 @@ extension `Tagged + Identifiable Tests`.`Edge Case` {
         let key = DomainKey(id: 99)
         let a: Tagged<Tag1, DomainKey> = Tagged<Tag1, DomainKey>(_unchecked: key)
         let b: Tagged<Tag2, DomainKey> = Tagged<Tag2, DomainKey>(_unchecked: key)
-        #expect(a.id == b.id)   // documented identity-inversion cost
+        #expect(a.id == b.id)  // documented identity-inversion cost
     }
 }
 

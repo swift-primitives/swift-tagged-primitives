@@ -1,8 +1,9 @@
-import Testing
 import Carrier_Primitives
-@testable import Tagged_Primitives
 import Tagged_Primitives_Standard_Library_Integration
 import Tagged_Primitives_Test_Support
+import Testing
+
+@testable import Tagged_Primitives
 
 // Tagged is generic — parallel namespace pattern per [SWIFT-TEST-003].
 
@@ -441,14 +442,20 @@ extension `Tagged Tests`.Integration {
 
     @Test
     func `init and underlying access with noncopyable underlying value`() {
-        struct Resource: ~Copyable, Carrier.`Protocol` { let id: Int; typealias Underlying = Self }
+        struct Resource: ~Copyable, Carrier.`Protocol` {
+            let id: Int
+            typealias Underlying = Self
+        }
         let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 99))
         #expect(tagged.underlying.id == 99)
     }
 
     @Test
     func `map with noncopyable underlying value`() {
-        struct Resource: ~Copyable, Carrier.`Protocol` { let id: Int; typealias Underlying = Self }
+        struct Resource: ~Copyable, Carrier.`Protocol` {
+            let id: Int
+            typealias Underlying = Self
+        }
         let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 7))
         let mapped: Tagged<Tag1, Int> = tagged.map { $0.id }
         #expect(mapped.underlying == 7)
@@ -456,7 +463,10 @@ extension `Tagged Tests`.Integration {
 
     @Test
     func `retag with noncopyable underlying value`() {
-        struct Resource: ~Copyable, Carrier.`Protocol` { let id: Int; typealias Underlying = Self }
+        struct Resource: ~Copyable, Carrier.`Protocol` {
+            let id: Int
+            typealias Underlying = Self
+        }
         let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 42))
         let retagged: Tagged<Tag2, Resource> = tagged.retag()
         #expect(retagged.underlying.id == 42)
@@ -464,7 +474,10 @@ extension `Tagged Tests`.Integration {
 
     @Test
     func `modify with noncopyable underlying value`() {
-        struct Resource: ~Copyable, Carrier.`Protocol` { var id: Int; typealias Underlying = Self }
+        struct Resource: ~Copyable, Carrier.`Protocol` {
+            var id: Int
+            typealias Underlying = Self
+        }
         var tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 1))
         tagged.modify { $0.id = 99 }
         #expect(tagged.underlying.id == 99)
@@ -472,7 +485,10 @@ extension `Tagged Tests`.Integration {
 
     @Test
     func `MemoryLayout of noncopyable Tagged matches underlying value`() {
-        struct Resource: ~Copyable { let id: Int; let priority: Int }
+        struct Resource: ~Copyable {
+            let id: Int
+            let priority: Int
+        }
         #expect(MemoryLayout<Tagged<Tag1, Resource>>.size == MemoryLayout<Resource>.size)
         #expect(MemoryLayout<Tagged<Tag1, Resource>>.stride == MemoryLayout<Resource>.stride)
         #expect(MemoryLayout<Tagged<Tag1, Resource>>.alignment == MemoryLayout<Resource>.alignment)
@@ -540,7 +556,10 @@ extension `Tagged Tests`.Integration {
         // resulting Tagged<Tag, Resource> (which is ~Copyable & Escapable
         // per cell C) is admitted.
         func _requireEscapable<T: Escapable & ~Copyable>(_: T.Type) {}
-        struct Resource: ~Copyable, Carrier.`Protocol` { let id: Int; typealias Underlying = Self }
+        struct Resource: ~Copyable, Carrier.`Protocol` {
+            let id: Int
+            typealias Underlying = Self
+        }
         _requireEscapable(Tagged<Tag1, Resource>.self)
         #expect(Bool(true))
     }

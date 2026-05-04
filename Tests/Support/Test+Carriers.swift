@@ -23,7 +23,7 @@
 public import Carrier_Primitives
 
 extension Array: @retroactive Carrier.`Protocol` {
-    public typealias Underlying = Array<Element>
+    public typealias Underlying = [Element]
 }
 
 extension ContiguousArray: @retroactive Carrier.`Protocol` {
@@ -31,7 +31,7 @@ extension ContiguousArray: @retroactive Carrier.`Protocol` {
 }
 
 extension Dictionary: @retroactive Carrier.`Protocol` {
-    public typealias Underlying = Dictionary<Key, Value>
+    public typealias Underlying = [Key: Value]
 }
 
 extension Set: @retroactive Carrier.`Protocol` {

@@ -123,99 +123,99 @@ extension Tagged: Escapable where Tag: ~Copyable & ~Escapable, Underlying: Escap
 // (e.g., Ownership.Inout<Base>) do not participate here.
 
 extension Tagged: Sendable
-    where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & Sendable & Escapable {}
+where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & Sendable & Escapable {}
 
 // `BitwiseCopyable` does not currently admit `~Copyable`, so `Escapable` is
 // required here on Swift 6.3.1. When `BitwiseCopyable` is widened to admit
 // `~Copyable` (the natural next step on the SE-04XX suppressed-protocol
 // generality line), revisit this constraint to drop the `& Escapable` half.
 extension Tagged: BitwiseCopyable
-    where Tag: ~Copyable & ~Escapable, Underlying: BitwiseCopyable & Escapable {}
+where Tag: ~Copyable & ~Escapable, Underlying: BitwiseCopyable & Escapable {}
 
 // SE-0499: Swift.Equatable, Swift.Hashable, Swift.Comparable no longer imply
 // Copyable in Swift 6.4. The & ~Copyable suppression lets these conformances
 // apply to ~Copyable Underlying types.
 #if compiler(>=6.4)
-extension Tagged: Equatable
+    extension Tagged: Equatable
     where Tag: ~Copyable & ~Escapable, Underlying: Equatable & ~Copyable & Escapable {}
-extension Tagged: Hashable
+    extension Tagged: Hashable
     where Tag: ~Copyable & ~Escapable, Underlying: Hashable & ~Copyable & Escapable {}
 #else
-extension Tagged: Equatable
+    extension Tagged: Equatable
     where Tag: ~Copyable & ~Escapable, Underlying: Equatable & Escapable {}
-extension Tagged: Hashable
+    extension Tagged: Hashable
     where Tag: ~Copyable & ~Escapable, Underlying: Hashable & Escapable {}
 #endif
 
 #if !hasFeature(Embedded)
     extension Tagged: Codable
-        where Tag: ~Copyable & ~Escapable, Underlying: Codable & Escapable {}
+    where Tag: ~Copyable & ~Escapable, Underlying: Codable & Escapable {}
 #endif
 
 #if compiler(>=6.4)
-extension Tagged: Comparable
+    extension Tagged: Comparable
     where Tag: ~Copyable & ~Escapable, Underlying: Comparable & ~Copyable & Escapable {
-    @inlinable
-    public static func < (lhs: borrowing Tagged, rhs: borrowing Tagged) -> Bool {
-        lhs.underlying < rhs.underlying
-    }
+        @inlinable
+        public static func < (lhs: borrowing Tagged, rhs: borrowing Tagged) -> Bool {
+            lhs.underlying < rhs.underlying
+        }
 
-    /// Returns the greater of two tagged values.
-    ///
-    /// - Parameters:
-    ///   - a: The first tagged value.
-    ///   - b: The second tagged value.
-    /// - Returns: The greater of `a` and `b`.
-    @inlinable
-    public static func max(_ a: consuming Self, _ b: consuming Self) -> Self {
-        a.underlying >= b.underlying ? a : b
-    }
+        /// Returns the greater of two tagged values.
+        ///
+        /// - Parameters:
+        ///   - a: The first tagged value.
+        ///   - b: The second tagged value.
+        /// - Returns: The greater of `a` and `b`.
+        @inlinable
+        public static func max(_ a: consuming Self, _ b: consuming Self) -> Self {
+            a.underlying >= b.underlying ? a : b
+        }
 
-    /// Returns the lesser of two tagged values.
-    ///
-    /// - Parameters:
-    ///   - a: The first tagged value.
-    ///   - b: The second tagged value.
-    /// - Returns: The lesser of `a` and `b`.
-    @inlinable
-    public static func min(_ a: consuming Self, _ b: consuming Self) -> Self {
-        a.underlying <= b.underlying ? a : b
+        /// Returns the lesser of two tagged values.
+        ///
+        /// - Parameters:
+        ///   - a: The first tagged value.
+        ///   - b: The second tagged value.
+        /// - Returns: The lesser of `a` and `b`.
+        @inlinable
+        public static func min(_ a: consuming Self, _ b: consuming Self) -> Self {
+            a.underlying <= b.underlying ? a : b
+        }
     }
-}
 #else
-extension Tagged: Comparable
+    extension Tagged: Comparable
     where Tag: ~Copyable & ~Escapable, Underlying: Comparable & Escapable {
-    @inlinable
-    public static func < (lhs: Tagged, rhs: Tagged) -> Bool {
-        lhs.underlying < rhs.underlying
-    }
+        @inlinable
+        public static func < (lhs: Tagged, rhs: Tagged) -> Bool {
+            lhs.underlying < rhs.underlying
+        }
 
-    /// Returns the greater of two tagged values.
-    ///
-    /// Equivalent to `Swift.max(a, b)` but avoids verbose type annotations.
-    ///
-    /// - Parameters:
-    ///   - a: The first tagged value.
-    ///   - b: The second tagged value.
-    /// - Returns: The greater of `a` and `b`.
-    @inlinable
-    public static func max(_ a: Self, _ b: Self) -> Self {
-        a.underlying >= b.underlying ? a : b
-    }
+        /// Returns the greater of two tagged values.
+        ///
+        /// Equivalent to `Swift.max(a, b)` but avoids verbose type annotations.
+        ///
+        /// - Parameters:
+        ///   - a: The first tagged value.
+        ///   - b: The second tagged value.
+        /// - Returns: The greater of `a` and `b`.
+        @inlinable
+        public static func max(_ a: Self, _ b: Self) -> Self {
+            a.underlying >= b.underlying ? a : b
+        }
 
-    /// Returns the lesser of two tagged values.
-    ///
-    /// Equivalent to `Swift.min(a, b)` but avoids verbose type annotations.
-    ///
-    /// - Parameters:
-    ///   - a: The first tagged value.
-    ///   - b: The second tagged value.
-    /// - Returns: The lesser of `a` and `b`.
-    @inlinable
-    public static func min(_ a: Self, _ b: Self) -> Self {
-        a.underlying <= b.underlying ? a : b
+        /// Returns the lesser of two tagged values.
+        ///
+        /// Equivalent to `Swift.min(a, b)` but avoids verbose type annotations.
+        ///
+        /// - Parameters:
+        ///   - a: The first tagged value.
+        ///   - b: The second tagged value.
+        /// - Returns: The lesser of `a` and `b`.
+        @inlinable
+        public static func min(_ a: Self, _ b: Self) -> Self {
+            a.underlying <= b.underlying ? a : b
+        }
     }
-}
 #endif
 
 // MARK: - Functor (Static Implementation)

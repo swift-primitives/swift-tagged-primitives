@@ -18,8 +18,10 @@
 // Option C).
 
 extension Tagged: LosslessStringConvertible
-where Tag: ~Copyable & ~Escapable,
-      Underlying: LosslessStringConvertible & Escapable {
+where
+    Tag: ~Copyable & ~Escapable,
+    Underlying: LosslessStringConvertible & Escapable
+{
     /// Parses a string into a tagged value by forwarding to
     /// `Underlying.init?(_:)`.
     ///
