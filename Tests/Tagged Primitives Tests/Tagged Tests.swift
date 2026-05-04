@@ -478,6 +478,25 @@ extension `Tagged Tests`.Integration {
         #expect(MemoryLayout<Tagged<Tag1, Resource>>.alignment == MemoryLayout<Resource>.alignment)
     }
 
+    @Test
+    func `consume-extract noncopyable underlying out of consumed Tagged`() {
+        // Regression test: pre-rename `public var rawValue` was a stored
+        // property allowing consume-extract on a consumed `tagged`. The
+        // 96f2a76 rename converted to a `_read` accessor and lost this
+        // capability. The fix restored a stored `public package(set) var
+        // underlying` (this experiment + main commit).
+        struct Resource: ~Copyable, Carrier.`Protocol` {
+            let id: Int
+            typealias Underlying = Self
+        }
+        func extract(_ t: consuming Tagged<Tag1, Resource>) -> Resource {
+            t.underlying  // direct stored field on consumed host: partial-consume
+        }
+        let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 7))
+        let extracted = extract(tagged)
+        #expect(extracted.id == 7)
+    }
+
     // MARK: Conditional Conformances — Sendable
 
     @Test

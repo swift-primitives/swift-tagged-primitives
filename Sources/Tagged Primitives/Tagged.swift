@@ -27,22 +27,48 @@
 ///
 /// ## Access surface
 ///
-/// Tagged exposes no direct accessor or public init in its own type
-/// body. External construction and read access flow through the
-/// `Carrier.\`Protocol\`` (a.k.a. `Carrying`) conformance, which is
-/// **unconditional** — Tagged is always a Carrier of its immediate
-/// `Underlying`, regardless of what `Underlying` is. Callers construct
-/// via `Tagged<Tag, U>(value)` and read via `tagged.underlying`
-/// (returning the immediate `U`, not a recursively-resolved type).
-/// For nested `Tagged<X, Tagged<Y, Int>>`, `.underlying` returns
-/// `Tagged<Y, Int>`; consumers that need to reach `Int` recurse.
+/// Tagged exposes the wrapped value via a single stored property
+/// `public package(set) var underlying: Underlying`. The `package(set)`
+/// access modifier keeps the public read surface (`tagged.underlying`)
+/// while restricting external mutation (`tagged.underlying = x` is
+/// rejected outside the package). External construction flows through
+/// the `Carrier.\`Protocol\`` (a.k.a. `Carrying`) conformance — Tagged
+/// is **unconditionally** a Carrier of its immediate `Underlying`,
+/// regardless of what `Underlying` is.
+///
+/// Callers construct via `Tagged<Tag, U>(value)` and read via
+/// `tagged.underlying` (returning the immediate `U`, not a
+/// recursively-resolved type). For nested `Tagged<X, Tagged<Y, Int>>`,
+/// `.underlying` returns `Tagged<Y, Int>`; consumers that need to reach
+/// `Int` recurse.
+///
+/// `underlying` is a stored property (not a computed accessor) so that
+/// direct-storage ownership semantics survive the wrapper: on a consumed
+/// `tagged`, `tagged.underlying` extracts the owned value via
+/// partial-consume of storage. A computed `_read` accessor cannot offer
+/// this — accessor results are not "storage" in Swift's ownership model.
+///
 /// The `_unchecked:` init is also `public` for cross-package consumers
 /// whose `Underlying` cannot satisfy Carrier's consuming init (e.g.,
 /// `Property.View` wrapping `Tagged<Tag, Ownership.Inout<Base>>`).
 @frozen
 public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable>: ~Copyable, ~Escapable {
-    @usableFromInline
-    package var _storage: Underlying
+    /// The wrapped underlying value.
+    ///
+    /// Public-readable, package-mutable. The `package(set)` access modifier
+    /// keeps the public surface read-only (`tagged.underlying += 5` is
+    /// rejected by external consumers) while preserving package-internal
+    /// mutability needed by ``modify(_:)`` and the Carrier-derived init.
+    ///
+    /// This is a STORED property, not a computed accessor. The stored
+    /// shape is load-bearing: it makes the Carrier protocol's
+    /// `var underlying { borrowing get }` requirement satisfiable AND
+    /// preserves direct-storage ownership semantics — `consume tagged.underlying`
+    /// and `var x = tagged.underlying` (on a consumed `tagged`) extract the
+    /// owned value out of self via partial-consume of storage. A computed
+    /// `_read` accessor cannot recover those semantics because computed
+    /// accessor results are not "storage" in Swift's ownership model.
+    public package(set) var underlying: Underlying
 
     /// Direct construction from an already-validated underlying value.
     ///
@@ -62,10 +88,9 @@ public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escap
     /// For the common case where `Underlying: Carrier.\`Protocol\``, prefer
     /// `Tagged<Tag, U>(_ underlying:)` (the Carrier-derived init) so any
     /// domain validation in `U.init(_:)` runs.
-    @inlinable
     @_lifetime(copy underlying)
     public init(_unchecked underlying: consuming Underlying) {
-        self._storage = underlying
+        self.underlying = underlying
     }
 }
 
@@ -77,9 +102,8 @@ public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escap
 // revalidated FIXED on Swift 6.3.1 — see
 // Experiments/tagged-modify-escapable-revalidation (CONFIRMED, 2026-04-24).
 extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable {
-    @inlinable
     package mutating func modify<T>(_ body: (_ underlying: inout Underlying) -> T) -> T {
-        body(&self._storage)
+        body(&self.underlying)
     }
 }
 
@@ -133,7 +157,7 @@ extension Tagged: Comparable
     where Tag: ~Copyable & ~Escapable, Underlying: Comparable & ~Copyable & Escapable {
     @inlinable
     public static func < (lhs: borrowing Tagged, rhs: borrowing Tagged) -> Bool {
-        lhs._storage < rhs._storage
+        lhs.underlying < rhs.underlying
     }
 
     /// Returns the greater of two tagged values.
@@ -144,7 +168,7 @@ extension Tagged: Comparable
     /// - Returns: The greater of `a` and `b`.
     @inlinable
     public static func max(_ a: consuming Self, _ b: consuming Self) -> Self {
-        a._storage >= b._storage ? a : b
+        a.underlying >= b.underlying ? a : b
     }
 
     /// Returns the lesser of two tagged values.
@@ -155,7 +179,7 @@ extension Tagged: Comparable
     /// - Returns: The lesser of `a` and `b`.
     @inlinable
     public static func min(_ a: consuming Self, _ b: consuming Self) -> Self {
-        a._storage <= b._storage ? a : b
+        a.underlying <= b.underlying ? a : b
     }
 }
 #else
@@ -163,7 +187,7 @@ extension Tagged: Comparable
     where Tag: ~Copyable & ~Escapable, Underlying: Comparable & Escapable {
     @inlinable
     public static func < (lhs: Tagged, rhs: Tagged) -> Bool {
-        lhs._storage < rhs._storage
+        lhs.underlying < rhs.underlying
     }
 
     /// Returns the greater of two tagged values.
@@ -176,7 +200,7 @@ extension Tagged: Comparable
     /// - Returns: The greater of `a` and `b`.
     @inlinable
     public static func max(_ a: Self, _ b: Self) -> Self {
-        a._storage >= b._storage ? a : b
+        a.underlying >= b.underlying ? a : b
     }
 
     /// Returns the lesser of two tagged values.
@@ -189,7 +213,7 @@ extension Tagged: Comparable
     /// - Returns: The lesser of `a` and `b`.
     @inlinable
     public static func min(_ a: Self, _ b: Self) -> Self {
-        a._storage <= b._storage ? a : b
+        a.underlying <= b.underlying ? a : b
     }
 }
 #endif
@@ -209,7 +233,7 @@ extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
         _ tagged: consuming Tagged,
         transform: (consuming Underlying) throws(E) -> NewUnderlying
     ) throws(E) -> Tagged<Tag, NewUnderlying> {
-        Tagged<Tag, NewUnderlying>(_unchecked: try transform(tagged._storage))
+        Tagged<Tag, NewUnderlying>(_unchecked: try transform(tagged.underlying))
     }
 
     /// Changes the tag type while preserving the underlying value.
@@ -227,7 +251,7 @@ extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
         _ tagged: consuming Tagged,
         to _: NewTag.Type = NewTag.self
     ) -> Tagged<NewTag, Underlying> {
-        Tagged<NewTag, Underlying>(_unchecked: tagged._storage)
+        Tagged<NewTag, Underlying>(_unchecked: tagged.underlying)
     }
 }
 
