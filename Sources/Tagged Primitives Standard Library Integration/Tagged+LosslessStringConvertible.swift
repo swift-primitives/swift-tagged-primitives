@@ -22,9 +22,10 @@ where
     Tag: ~Copyable & ~Escapable,
     Underlying: LosslessStringConvertible & Escapable
 {
-    /// Parses a string into a tagged value by forwarding to
-    /// `Underlying.init?(_:)`. Constructs a `Tagged` wrapping the parsed
-    /// `Underlying`, or returns `nil` if parsing fails.
+    /// Parses a string into a tagged value by forwarding to `Underlying.init?(_:)`.
+    ///
+    /// Constructs a `Tagged` wrapping the parsed `Underlying`, or returns
+    /// `nil` if parsing fails.
     ///
     /// The phantom `Tag` is determined by the receiver's type annotation,
     /// not by `description` content — serializing across wire/file/IPC

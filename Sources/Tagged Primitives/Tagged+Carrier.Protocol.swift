@@ -54,9 +54,10 @@ where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable {
     // `_read` accessor would lose because computed-accessor results are
     // not "storage" in Swift's ownership model.
 
-    /// Constructs a tagged carrier by directly storing the consumed
-    /// underlying value. No transitive Carrier construction — the
-    /// generic-parameter `Underlying` is accepted as-is.
+    /// Constructs a tagged carrier by directly storing the consumed underlying value.
+    ///
+    /// No transitive Carrier construction — the generic-parameter
+    /// `Underlying` is accepted as-is.
     ///
     /// The `@_lifetime(copy underlying)` annotation lives on the protocol
     /// declaration; conformers do not repeat it.

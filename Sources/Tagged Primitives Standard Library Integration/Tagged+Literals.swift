@@ -43,9 +43,10 @@
 
 extension Tagged: ExpressibleByIntegerLiteral
 where Tag: ~Copyable, Underlying: ExpressibleByIntegerLiteral {
-    /// Constructs a tagged value from an integer literal by forwarding
-    /// to `Underlying(integerLiteral:)`. Marked `@_disfavoredOverload` to
-    /// keep domain-specific inits ranked higher in resolution.
+    /// Constructs a tagged value from an integer literal by forwarding to `Underlying(integerLiteral:)`.
+    ///
+    /// Marked `@_disfavoredOverload` to keep domain-specific inits ranked
+    /// higher in resolution.
     @_disfavoredOverload
     public init(integerLiteral value: Underlying.IntegerLiteralType) {
         self = .init(_unchecked: Underlying(integerLiteral: value))
@@ -84,11 +85,11 @@ where Tag: ~Copyable, Underlying: ExpressibleByExtendedGraphemeClusterLiteral {
 
 extension Tagged: ExpressibleByStringLiteral
 where Tag: ~Copyable, Underlying: ExpressibleByStringLiteral {
-    /// Constructs a tagged value from a string literal by forwarding to
-    /// `Underlying(stringLiteral:)`. Note: in SLI scope,
-    /// `Tagged<Tag, T>("string")` (parenthesized init form) is ambiguous
-    /// because of the interaction with `LosslessStringConvertible` —
-    /// disambiguate via `Tagged<Tag, T>(String("…"))`.
+    /// Constructs a tagged value from a string literal by forwarding to `Underlying(stringLiteral:)`.
+    ///
+    /// Note: in SLI scope, `Tagged<Tag, T>("string")` (parenthesized init
+    /// form) is ambiguous because of the interaction with
+    /// `LosslessStringConvertible` — disambiguate via `Tagged<Tag, T>(String("…"))`.
     @_disfavoredOverload
     public init(stringLiteral value: Underlying.StringLiteralType) {
         self.init(_unchecked: Underlying(stringLiteral: value))
@@ -150,12 +151,15 @@ where Tag: ~Copyable, Underlying: ExpressibleByStringInterpolation {
 
 extension Tagged: ExpressibleByArrayLiteral
 where Tag: ~Copyable, Underlying: ExpressibleByArrayLiteral {
-    /// Constructs a tagged value from an array literal by reinterpreting
-    /// `Underlying`'s variadic `init(arrayLiteral:)` as an array-typed
-    /// init via `unsafeBitCast`. **`[MEM-SAFE-001]` carve-out site #1
-    /// of 2** — see the file's MARK block for provenance and ABI
-    /// rationale; see `Research/principled-absence-array-dict-literal.md`
-    /// v1.2.0 for the carve-out's bounded scope.
+    /// Constructs a tagged value from an array literal.
+    ///
+    /// Reinterprets `Underlying`'s variadic `init(arrayLiteral:)` as an
+    /// array-typed init via `unsafeBitCast`.
+    ///
+    /// **`[MEM-SAFE-001]` carve-out site #1 of 2** — see the file's MARK
+    /// block for provenance and ABI rationale; see
+    /// `Research/principled-absence-array-dict-literal.md` v1.2.0 for the
+    /// carve-out's bounded scope.
     @_disfavoredOverload
     public init(arrayLiteral elements: Underlying.ArrayLiteralElement...) {
         let f = unsafe unsafeBitCast(
@@ -168,11 +172,13 @@ where Tag: ~Copyable, Underlying: ExpressibleByArrayLiteral {
 
 extension Tagged: ExpressibleByDictionaryLiteral
 where Tag: ~Copyable, Underlying: ExpressibleByDictionaryLiteral {
-    /// Constructs a tagged value from a dictionary literal by
-    /// reinterpreting `Underlying`'s variadic `init(dictionaryLiteral:)`
-    /// as a tuple-array-typed init via `unsafeBitCast`. **`[MEM-SAFE-001]`
-    /// carve-out site #2 of 2** — see the file's MARK block for
-    /// provenance and ABI rationale.
+    /// Constructs a tagged value from a dictionary literal.
+    ///
+    /// Reinterprets `Underlying`'s variadic `init(dictionaryLiteral:)` as a
+    /// tuple-array-typed init via `unsafeBitCast`.
+    ///
+    /// **`[MEM-SAFE-001]` carve-out site #2 of 2** — see the file's MARK
+    /// block for provenance and ABI rationale.
     @_disfavoredOverload
     public init(dictionaryLiteral elements: (Underlying.Key, Underlying.Value)...) {
         let f = unsafe unsafeBitCast(
