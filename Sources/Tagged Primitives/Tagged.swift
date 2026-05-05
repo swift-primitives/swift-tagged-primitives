@@ -58,7 +58,7 @@ public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escap
     /// Public-readable, package-mutable. The `package(set)` access modifier
     /// keeps the public surface read-only (`tagged.underlying += 5` is
     /// rejected by external consumers) while preserving package-internal
-    /// mutability needed by ``modify(_:)`` and the Carrier-derived init.
+    /// mutability needed by `modify(_:)` (package) and the Carrier-derived init.
     ///
     /// This is a STORED property, not a computed accessor. The stored
     /// shape is load-bearing: it makes the Carrier protocol's
