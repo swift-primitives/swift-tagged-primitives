@@ -74,7 +74,7 @@ operations are permitted.
 
 - ``Tagged/map(_:)-7mqjt`` transforms the underlying value while preserving
   the tag: `Tagged<Tag, V> → Tagged<Tag, W>`.
-- ``Tagged/retag(_:)-e9ql`` changes the tag while preserving the underlying
+- ``Tagged/retag(_:)`` changes the tag while preserving the underlying
   value: `Tagged<A, V> → Tagged<B, V>`.
 
 `retag` is a phantom coercion — it changes only the type-level tag with
