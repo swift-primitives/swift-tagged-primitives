@@ -45,7 +45,7 @@
     "ReturnVoidInsteadOfEmptyTuple": true,
     "UseEarlyExits": true,
     "UseLetInEveryBoundCaseVariable": true,
-    "UseShorthandTypeNames": false,
+    "UseShorthandTypeNames": true,
     "UseSingleLinePropertyGetter": true,
     "UseSynthesizedInitializer": false,
     "UseTripleSlashForDocumentationComments": true,
