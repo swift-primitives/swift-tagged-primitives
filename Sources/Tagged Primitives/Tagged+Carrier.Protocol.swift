@@ -11,7 +11,7 @@
 //   1. Tagged was not a Carrier when Underlying wasn't (e.g.,
 //      `Tagged<Tag, Ownership.Inout<Base>>` couldn't get the conformance
 //      because `Ownership.Inout` is a scoped projection, not an owned value
-//      that can satisfy Carrier's consuming init — Property.View was blocked).
+//      that can satisfy Carrier's consuming init — Property.Inout was blocked).
 //   2. Name-shadowing complexity: `Self.Underlying` (cascade-end) vs
 //      `Underlying` (generic param) collided; conformers had to qualify.
 //   3. Brittle transitive dependency: Tagged's Carrier-ness depended on
