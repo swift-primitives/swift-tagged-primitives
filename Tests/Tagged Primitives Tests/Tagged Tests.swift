@@ -294,7 +294,7 @@ extension `Tagged Tests`.`Edge Case` {
 
     @Test
     func `map with throwing transform propagates error`() {
-        enum TestError: Error { case expected }
+        enum TestError: Swift.Error { case expected }
         let tagged: Tagged<Tag1, Int> = 42
         #expect(throws: TestError.self) {
             try tagged.map { _ throws(TestError) -> String in throw .expected }

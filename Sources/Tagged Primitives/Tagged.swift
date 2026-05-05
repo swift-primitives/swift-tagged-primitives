@@ -155,6 +155,7 @@ where Tag: ~Copyable & ~Escapable, Underlying: BitwiseCopyable & Escapable {}
 #if compiler(>=6.4)
     extension Tagged: Comparable
     where Tag: ~Copyable & ~Escapable, Underlying: Comparable & ~Copyable & Escapable {
+        /// Compares two tagged values by their underlying values, preserving phantom-tag isolation.
         @inlinable
         public static func < (lhs: borrowing Tagged, rhs: borrowing Tagged) -> Bool {
             lhs.underlying < rhs.underlying
@@ -185,6 +186,7 @@ where Tag: ~Copyable & ~Escapable, Underlying: BitwiseCopyable & Escapable {}
 #else
     extension Tagged: Comparable
     where Tag: ~Copyable & ~Escapable, Underlying: Comparable & Escapable {
+        /// Compares two tagged values by their underlying values, preserving phantom-tag isolation.
         @inlinable
         public static func < (lhs: Tagged, rhs: Tagged) -> Bool {
             lhs.underlying < rhs.underlying
@@ -229,7 +231,7 @@ extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
     /// - Returns: A new tagged value with the same `Tag` and the transformed underlying.
     /// - Throws: The error thrown by `transform`, with type preserved.
     @inlinable
-    public static func map<E: Error, NewUnderlying: ~Copyable>(
+    public static func map<E: Swift.Error, NewUnderlying: ~Copyable>(
         _ tagged: consuming Tagged,
         transform: (consuming Underlying) throws(E) -> NewUnderlying
     ) throws(E) -> Tagged<Tag, NewUnderlying> {
@@ -264,7 +266,7 @@ extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
     /// - Returns: A new tagged value with the same `Tag` and the transformed underlying.
     /// - Throws: The error thrown by `transform`, with type preserved.
     @inlinable
-    public consuming func map<E: Error, NewUnderlying: ~Copyable>(
+    public consuming func map<E: Swift.Error, NewUnderlying: ~Copyable>(
         _ transform: (consuming Underlying) throws(E) -> NewUnderlying
     ) throws(E) -> Tagged<Tag, NewUnderlying> {
         try Self.map(self, transform: transform)

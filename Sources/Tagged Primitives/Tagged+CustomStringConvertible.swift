@@ -10,6 +10,7 @@
 // ===----------------------------------------------------------------------===//
 
 extension Tagged: CustomStringConvertible where Tag: ~Copyable & ~Escapable, Underlying: CustomStringConvertible & Escapable {
+    /// Forwards to the underlying value's description.
     @inlinable
     public var description: String { underlying.description }
 }
