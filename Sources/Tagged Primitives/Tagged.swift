@@ -50,7 +50,7 @@
 ///
 /// The `_unchecked:` init is also `public` for cross-package consumers
 /// whose `Underlying` cannot satisfy Carrier's consuming init (e.g.,
-/// `Property.View` wrapping `Tagged<Tag, Ownership.Inout<Base>>`).
+/// `Property.Inout` wrapping `Tagged<Tag, Ownership.Inout<Base>>`).
 @frozen
 public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable>: ~Copyable, ~Escapable {
     /// The wrapped underlying value.
@@ -79,7 +79,7 @@ public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escap
     /// - SLI conformances and per-domain types within this package
     /// - Cross-package domain wrappers whose `Underlying` cannot itself
     ///   conform to `Carrier.\`Protocol\`` (e.g., `Tagged<Tag, Ownership.Inout<Base>>`
-    ///   in `Property.View` — `Inout` is a scoped projection, not an
+    ///   in `Property.Inout` — `Inout` is a scoped projection, not an
     ///   owned value, so it cannot satisfy Carrier's consuming init)
     /// - Performance-critical paths where the `Carrier.\`Protocol\``-derived
     ///   `init(_:)` would route through an Underlying init that does
