@@ -23,15 +23,15 @@ where
     Underlying: LosslessStringConvertible & Escapable
 {
     /// Parses a string into a tagged value by forwarding to
-    /// `Underlying.init?(_:)`.
+    /// `Underlying.init?(_:)`. Constructs a `Tagged` wrapping the parsed
+    /// `Underlying`, or returns `nil` if parsing fails.
+    ///
+    /// The phantom `Tag` is determined by the receiver's type annotation,
+    /// not by `description` content — serializing across wire/file/IPC
+    /// where `Tag` must be preserved should prefer per-domain wrapper
+    /// structs (see `Research/principled-absence-losslessstringconvertible.md`).
     ///
     /// - Parameter description: The string to parse.
-    /// - Returns: A `Tagged` wrapping the parsed `Underlying`, or `nil`
-    ///   if parsing fails. The phantom `Tag` is determined by the
-    ///   receiver's type annotation, not by `description` content —
-    ///   serializing across wire/file/IPC where `Tag` must be preserved
-    ///   should prefer per-domain wrapper structs (see
-    ///   `Research/principled-absence-losslessstringconvertible.md`).
     @inlinable
     public init?(_ description: String) {
         guard let raw = Underlying(description) else { return nil }
