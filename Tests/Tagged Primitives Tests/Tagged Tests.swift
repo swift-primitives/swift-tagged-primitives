@@ -501,6 +501,16 @@ extension `Tagged Tests`.Integration {
         // 96f2a76 rename converted to a `_read` accessor and lost this
         // capability. The fix restored a stored `public package(set) var
         // underlying` (this experiment + main commit).
+        //
+        // CANARY: this test fails to compile on +Asserts toolchains
+        // (Windows 6.3 RELEASE, Linux 6.4-dev nightly) due to a known
+        // compiler bug: MoveOnlyChecker assertion fires on partial-consume
+        // of a ~Copyable field whose nominal type's formal access scope is
+        // narrower than public-or-package (e.g., a local type, or a public
+        // type seen across modules under InternalImportsByDefault).
+        // TRACKING: https://github.com/swiftlang/swift/issues/87136
+        // The failing jobs are continue-on-error per [CI-021]; when this
+        // test starts compiling on those jobs, the upstream bug is fixed.
         struct Resource: ~Copyable, Carrier.`Protocol` {
             let id: Int
             typealias Underlying = Self
