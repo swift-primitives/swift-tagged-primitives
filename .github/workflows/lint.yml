@@ -1,0 +1,25 @@
+name: Lint
+
+# Architecture-cohort consumer workflow — references the reusable
+# `swift-linter` workflow at swift-foundations/swift-linter. The CLI
+# detects this repo's `Lint/Package.swift` and dispatches the lint run
+# to our `Lint` executable, which links the engine + 3 carry-forward
+# rule packs (Unchecked, Cardinal, RawValue) + 7 wave-1 rule packs +
+# the domain-aware custom rule (`Lint.Rule.TaggedDomainAudit`).
+#
+# Provisional pin to `@main` until swift-linter ships a tagged
+# release; switch to an immutable SHA / tag pin then.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    uses: swift-foundations/swift-linter/.github/workflows/lint.yml@main
+    with:
+      swift-version: "6.3"
+      advisory: true
+      enable-private-repos: false
+      emit-sarif: false
