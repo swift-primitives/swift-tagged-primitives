@@ -88,7 +88,7 @@ let pathStrings: [Swift.String] = arguments.count >= 2
 do {
     let consumerPaths: [File.Path] = try pathStrings.map { try File.Path($0) }
     let findings = try Lint.Run.run(paths: consumerPaths, configuration: configuration)
-    Lint.Reporter.emit(findings: findings, to: Terminal.Stream.stdout.write)
+    Lint.Reporter.Text.emit(findings: findings, to: Terminal.Stream.stdout.write)
 } catch {
     print("[Lint] error: \(error)")
 }
