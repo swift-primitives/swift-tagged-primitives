@@ -34,20 +34,17 @@
 // alone, per `swift-institute/Research/2026-05-07-swift-linter-consumer-syntax.md`
 // §Outcome Q1b.
 
+internal import File_System
 internal import Linter
 internal import Linter_Reporter_Text
 internal import Linter_Rule_Cardinal
-internal import Linter_Rule_Compound_Identifier
-internal import Linter_Rule_Existential_Throws
-internal import Linter_Rule_Option_Named_Flags
+internal import Linter_Rule_Naming
 internal import Linter_Rule_RawValue
 internal import Linter_Rule_ResultBuilder
-internal import Linter_Rule_Tag_Suffix
 internal import Linter_Rule_Tagged_Domain_Audit
-internal import Linter_Rule_Try_Optional
+internal import Linter_Rule_Throws
+internal import Linter_Rule_Try
 internal import Linter_Rule_Unchecked
-internal import Linter_Rule_Untyped_Throws
-internal import Linter_Rule_Var_Named_Impl
 internal import Terminal_Primitives
 
 // Fully-qualified `Lint.Rule.Configuration.enable(...)` is required at the
@@ -70,15 +67,15 @@ let configuration = Lint.Configuration(
         // Tier 2 R4 — `X(bitPattern: …rawValue)` integration anti-pattern.
         Lint.Rule.Configuration.enable(Lint.Rule.RawValue.BitPattern.self)
         // Carry-forward Phase-2 rule — `for` inside `@resultBuilder` body.
-        Lint.Rule.Configuration.enable(Lint.Rule.ResultBuilderForLoop.self)
+        Lint.Rule.Configuration.enable(Lint.Rule.ResultBuilder.ForLoop.self)
         // Wave-1 AI-harness rules (Phase 4).
-        Lint.Rule.Configuration.enable(Lint.Rule.TryOptional.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.UntypedThrows.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.ExistentialThrows.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.VarNamedImpl.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.OptionNamedFlags.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.CompoundIdentifier.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.TagSuffix.self)
+        Lint.Rule.Configuration.enable(Lint.Rule.Try.self)
+        Lint.Rule.Configuration.enable(Lint.Rule.Throws.Untyped.self)
+        Lint.Rule.Configuration.enable(Lint.Rule.Throws.Existential.self)
+        Lint.Rule.Configuration.enable(Lint.Rule.Naming.Impl.self)
+        Lint.Rule.Configuration.enable(Lint.Rule.Naming.Options.self)
+        Lint.Rule.Configuration.enable(Lint.Rule.Naming.Compound.self)
+        Lint.Rule.Configuration.enable(Lint.Rule.Naming.Tag.self)
         // PoC custom rule — Tagged-domain-aware, outside the institute
         // canonical packs by design.
         Lint.Rule.Configuration.enable(Lint.Rule.TaggedDomainAudit.self)
@@ -86,11 +83,12 @@ let configuration = Lint.Configuration(
 )
 
 let arguments = Swift.CommandLine.arguments
-let consumerPaths: [Swift.String] = arguments.count >= 2
+let pathStrings: [Swift.String] = arguments.count >= 2
     ? [Swift.String](arguments.dropFirst())
     : ["."]
 
 do {
+    let consumerPaths: [File.Path] = try pathStrings.map { try File.Path($0) }
     let findings = try Lint.Run.run(paths: consumerPaths, configuration: configuration)
     Lint.Reporter.emit(findings: findings, to: Terminal.Stream.stdout.write)
 } catch {
