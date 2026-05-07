@@ -54,33 +54,31 @@ internal import Terminal_Primitives
 // is ambiguous in the unconstrained position. Inside `if` / `for` bodies
 // the contextual type is narrowed to `Element` and the leading-dot form
 // works there. The fully-qualified form is uniformly correct.
-let configuration = Lint.Configuration(
-    rules: {
-        // Tier 2 R5 — call-site `__unchecked:` argument label.
-        Lint.Rule.Configuration.enable(Lint.Rule.Unchecked.self)
-        // Tier 2 R1 — `count - 1` and algebraic-flip equivalents.
-        Lint.Rule.Configuration.enable(Lint.Rule.Cardinal.Count.self)
-        // Tier 2 R2 — `Cardinal(0)` / `Cardinal(1)` constructors.
-        Lint.Rule.Configuration.enable(Lint.Rule.Cardinal.Constructor.self)
-        // Tier 2 R3 — chained `.rawValue.X` member access.
-        Lint.Rule.Configuration.enable(Lint.Rule.RawValue.Chain.self)
-        // Tier 2 R4 — `X(bitPattern: …rawValue)` integration anti-pattern.
-        Lint.Rule.Configuration.enable(Lint.Rule.RawValue.BitPattern.self)
-        // Carry-forward Phase-2 rule — `for` inside `@resultBuilder` body.
-        Lint.Rule.Configuration.enable(Lint.Rule.ResultBuilder.ForLoop.self)
-        // Wave-1 AI-harness rules (Phase 4).
-        Lint.Rule.Configuration.enable(Lint.Rule.Try.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.Throws.Untyped.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.Throws.Existential.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.Naming.Impl.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.Naming.Options.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.Naming.Compound.self)
-        Lint.Rule.Configuration.enable(Lint.Rule.Naming.Tag.self)
-        // PoC custom rule — Tagged-domain-aware, outside the institute
-        // canonical packs by design.
-        Lint.Rule.Configuration.enable(Lint.Rule.TaggedDomainAudit.self)
-    }
-)
+let configuration = Lint.Configuration {
+    // Tier 2 R5 — call-site `__unchecked:` argument label.
+    Lint.Rule.Configuration.enable(Lint.Rule.Unchecked.self)
+    // Tier 2 R1 — `count - 1` and algebraic-flip equivalents.
+    Lint.Rule.Configuration.enable(Lint.Rule.Cardinal.Count.self)
+    // Tier 2 R2 — `Cardinal(0)` / `Cardinal(1)` constructors.
+    Lint.Rule.Configuration.enable(Lint.Rule.Cardinal.Constructor.self)
+    // Tier 2 R3 — chained `.rawValue.X` member access.
+    Lint.Rule.Configuration.enable(Lint.Rule.RawValue.Chain.self)
+    // Tier 2 R4 — `X(bitPattern: …rawValue)` integration anti-pattern.
+    Lint.Rule.Configuration.enable(Lint.Rule.RawValue.BitPattern.self)
+    // Carry-forward Phase-2 rule — `for` inside `@resultBuilder` body.
+    Lint.Rule.Configuration.enable(Lint.Rule.ResultBuilder.ForLoop.self)
+    // Wave-1 AI-harness rules (Phase 4).
+    Lint.Rule.Configuration.enable(Lint.Rule.Try.self)
+    Lint.Rule.Configuration.enable(Lint.Rule.Throws.Untyped.self)
+    Lint.Rule.Configuration.enable(Lint.Rule.Throws.Existential.self)
+    Lint.Rule.Configuration.enable(Lint.Rule.Naming.Impl.self)
+    Lint.Rule.Configuration.enable(Lint.Rule.Naming.Options.self)
+    Lint.Rule.Configuration.enable(Lint.Rule.Naming.Compound.self)
+    Lint.Rule.Configuration.enable(Lint.Rule.Naming.Tag.self)
+    // PoC custom rule — Tagged-domain-aware, outside the institute
+    // canonical packs by design.
+    Lint.Rule.Configuration.enable(Lint.Rule.TaggedDomainAudit.self)
+}
 
 let arguments = Swift.CommandLine.arguments
 let pathStrings: [Swift.String] = arguments.count >= 2
