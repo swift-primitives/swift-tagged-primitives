@@ -23,6 +23,10 @@ where Tag: ~Copyable & ~Escapable, Underlying: Sequence & Escapable {
     /// interchangeably — the phantom `Tag` is invisible to the algorithm.
     /// Consumers needing wrapper-boundary visibility should prefer
     /// `tagged.underlying.forEach { … }` instead.
+    // swiftlint:disable:next compound_identifier
+    // reason: Swift.Sequence protocol-witness — Tagged conforms to Swift.Sequence where
+    // Underlying: Swift.Sequence; makeIterator() is the protocol's required member; rename
+    // breaks conformance.
     @inlinable
     public func makeIterator() -> Underlying.Iterator {
         underlying.makeIterator()
