@@ -64,6 +64,9 @@ let package = Package(
         // Institute-canonical rule packs — the consumer wires the subset
         // referenced by the file-scope manifest's enabledRuleIDs.
         .package(path: "../../../swift-foundations/swift-linter-rules"),
+        // File.Path used to convert CLI argv strings into the typed paths
+        // Lint.Run.run consumes.
+        .package(path: "../../../swift-foundations/swift-file-system"),
         // L1 primitives surface used by the custom rule's Lint.Rule.Protocol conformance.
         .package(path: "../../swift-linter-primitives"),
         // Domain dep — the consumer (swift-tagged-primitives) IS the domain;
@@ -86,6 +89,7 @@ let package = Package(
             name: "Lint",
             dependencies: [
                 "Linter Rule Tagged Domain Audit",
+                .product(name: "File System", package: "swift-file-system"),
                 .product(name: "Linter", package: "swift-linter"),
                 .product(name: "Linter Reporter Text", package: "swift-linter"),
                 // Tier 2 institute baselines (R1–R5).
@@ -95,13 +99,9 @@ let package = Package(
                 // Carry-forward institute-canonical rule (Phase 2).
                 .product(name: "Linter Rule ResultBuilder", package: "swift-linter-rules"),
                 // Wave-1 AI-harness rules (Phase 4).
-                .product(name: "Linter Rule Try Optional", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Untyped Throws", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Existential Throws", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Var Named Impl", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Option Named Flags", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Compound Identifier", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Tag Suffix", package: "swift-linter-rules"),
+                .product(name: "Linter Rule Try", package: "swift-linter-rules"),
+                .product(name: "Linter Rule Throws", package: "swift-linter-rules"),
+                .product(name: "Linter Rule Naming", package: "swift-linter-rules"),
             ]
         ),
         .testTarget(
