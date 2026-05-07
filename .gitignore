@@ -21,6 +21,7 @@ Thumbs.db
 !/.github/
 !/Package.swift
 !/Lint.swift
+!/Lint/
 !/LICENSE
 !/LICENSE.md
 !/README.md
