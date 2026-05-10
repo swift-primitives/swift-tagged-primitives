@@ -191,6 +191,12 @@ The single direct dependency, `swift-carrier-primitives`, provides the `Carrier.
 
 ---
 
+## Community
+
+<!-- BEGIN: discussion -->
+Discuss this package: [swift-institute/discussions/14](https://github.com/orgs/swift-institute/discussions/14)
+<!-- END: discussion -->
+
 ## License
 
 Apache 2.0 (Institute) with MIT attribution to the upstream `pointfreeco/swift-tagged` (Copyright (c) 2019 Point-Free, Inc.). The combined-license text — Institute Apache 2.0 + the upstream's preserved MIT block — is in [LICENSE.md](LICENSE.md). MIT requires preservation of the original copyright notice in derivative works; the Institute's Apache 2.0 governs new contributions on top of the fork point.
