@@ -247,13 +247,13 @@ extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
     /// - Parameters:
     ///   - tagged: The tagged value to retag. Consumed.
     ///   - _: The new tag type (inferred when possible).
-    /// - Returns: A new tagged value with `NewTag` and the same underlying.
+    /// - Returns: A new tagged value with the new tag and the same underlying.
     @inlinable
-    public static func retag<NewTag: ~Copyable & ~Escapable>(
+    public static func retag<New: ~Copyable & ~Escapable>(
         _ tagged: consuming Tagged,
-        to _: NewTag.Type = NewTag.self
-    ) -> Tagged<NewTag, Underlying> {
-        Tagged<NewTag, Underlying>(_unchecked: tagged.underlying)
+        to _: New.Type = New.self
+    ) -> Tagged<New, Underlying> {
+        Tagged<New, Underlying>(_unchecked: tagged.underlying)
     }
 }
 
@@ -275,9 +275,9 @@ extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
     /// Changes the tag type while preserving the underlying value.
     ///
     /// - Parameter _: The new tag type (inferred when possible).
-    /// - Returns: A new tagged value with `NewTag` and the same underlying.
+    /// - Returns: A new tagged value with the new tag and the same underlying.
     @inlinable
-    public consuming func retag<NewTag: ~Copyable & ~Escapable>(_: NewTag.Type = NewTag.self) -> Tagged<NewTag, Underlying> {
-        Self.retag(self, to: NewTag.self)
+    public consuming func retag<New: ~Copyable & ~Escapable>(_: New.Type = New.self) -> Tagged<New, Underlying> {
+        Self.retag(self, to: New.self)
     }
 }

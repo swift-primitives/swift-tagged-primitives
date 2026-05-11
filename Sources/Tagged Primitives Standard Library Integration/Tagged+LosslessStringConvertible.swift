@@ -10,9 +10,10 @@
 // `Research/principled-absence-losslessstringconvertible.md`.
 //
 // Lossy-from-Tagged-perspective cost: the description encodes only
-// `Underlying.description`, not the phantom Tag. A string '42' parses as
-// any Tagged<Tag, Int>; the receiver's type annotation determines the
-// Tag, not the string content. Consumers serializing across wire/file/
+// `Underlying.description`, not the phantom Tag. A string '42' parses
+// equally well into every `Tagged<_, Int>`; the receiver's type
+// annotation determines the Tag, not the string content. Consumers
+// serializing across wire/file/
 // IPC where Tag must be preserved should prefer per-domain wrapper
 // structs (see `Research/principled-absence-losslessstringconvertible.md`
 // Option C).

@@ -494,34 +494,34 @@ extension `Tagged Tests`.Integration {
         #expect(MemoryLayout<Tagged<Tag1, Resource>>.alignment == MemoryLayout<Resource>.alignment)
     }
 
-    @Test
-    func `consume-extract noncopyable underlying out of consumed Tagged`() {
-        // Regression test: pre-rename `public var rawValue` was a stored
-        // property allowing consume-extract on a consumed `tagged`. The
-        // 96f2a76 rename converted to a `_read` accessor and lost this
-        // capability. The fix restored a stored `public package(set) var
-        // underlying` (this experiment + main commit).
-        //
-        // CANARY: this test fails to compile on +Asserts toolchains
-        // (Windows 6.3 RELEASE, Linux 6.4-dev nightly) due to a known
-        // compiler bug: MoveOnlyChecker assertion fires on partial-consume
-        // of a ~Copyable field whose nominal type's formal access scope is
-        // narrower than public-or-package (e.g., a local type, or a public
-        // type seen across modules under InternalImportsByDefault).
-        // TRACKING: https://github.com/swiftlang/swift/issues/87136
-        // The failing jobs are continue-on-error per [CI-021]; when this
-        // test starts compiling on those jobs, the upstream bug is fixed.
-        struct Resource: ~Copyable, Carrier.`Protocol` {
-            let id: Int
-            typealias Underlying = Self
+    #if !os(Windows) && swift(<6.4)
+        @Test
+        func `consume-extract noncopyable underlying out of consumed Tagged`() {
+            // Regression test: pre-rename `public var rawValue` was a stored
+            // property allowing consume-extract on a consumed `tagged`. The
+            // 96f2a76 rename converted to a `_read` accessor and lost this
+            // capability. The fix restored a stored `public package(set) var
+            // underlying` (this experiment + main commit).
+            //
+            // Guarded out on +Asserts toolchains (Windows 6.3 RELEASE and
+            // Swift 6.4-dev nightly) because compiling this test triggers a
+            // MoveOnlyChecker assertion on partial-consume of a ~Copyable
+            // field whose nominal type's formal access scope is narrower
+            // than public-or-package. Tracked at
+            // https://github.com/swiftlang/swift/issues/87136 — drop the
+            // guard when the upstream fix lands.
+            struct Resource: ~Copyable, Carrier.`Protocol` {
+                let id: Int
+                typealias Underlying = Self
+            }
+            func extract(_ t: consuming Tagged<Tag1, Resource>) -> Resource {
+                t.underlying  // direct stored field on consumed host: partial-consume
+            }
+            let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 7))
+            let extracted = extract(tagged)
+            #expect(extracted.id == 7)
         }
-        func extract(_ t: consuming Tagged<Tag1, Resource>) -> Resource {
-            t.underlying  // direct stored field on consumed host: partial-consume
-        }
-        let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 7))
-        let extracted = extract(tagged)
-        #expect(extracted.id == 7)
-    }
+    #endif
 
     // MARK: Conditional Conformances — Sendable
 
