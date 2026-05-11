@@ -23,17 +23,21 @@
 public import Carrier_Primitives
 
 extension Array: @retroactive Carrier.`Protocol` {
+    /// Trivial self-carrier: the underlying value is the array itself.
     public typealias Underlying = [Element]
 }
 
 extension ContiguousArray: @retroactive Carrier.`Protocol` {
+    /// Trivial self-carrier: the underlying value is the contiguous array itself.
     public typealias Underlying = ContiguousArray<Element>
 }
 
 extension Dictionary: @retroactive Carrier.`Protocol` {
+    /// Trivial self-carrier: the underlying value is the dictionary itself.
     public typealias Underlying = [Key: Value]
 }
 
 extension Set: @retroactive Carrier.`Protocol` {
+    /// Trivial self-carrier: the underlying value is the set itself.
     public typealias Underlying = Set<Element>
 }

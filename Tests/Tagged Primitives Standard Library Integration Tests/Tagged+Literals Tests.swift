@@ -109,9 +109,9 @@ extension `Tagged + Literals Tests`.Integration {
 
     @Test
     func `phantom Tags remain distinct under literal init`() {
-        enum OtherTag {}
+        enum Other {}
         let a: Tagged<Tag1, Int> = 42
-        let b: Tagged<OtherTag, Int> = 42
+        let b: Tagged<Other, Int> = 42
         #expect(type(of: a) != type(of: b))
         // a == b would not compile — different types preserved by phantom Tag.
     }
