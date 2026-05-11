@@ -10,8 +10,8 @@
 //
 // Wrapper-vs-content conflation cost: see `Tagged+Sequence.swift`.
 
-extension Tagged: Collection
-where Tag: ~Copyable & ~Escapable, Underlying: Collection & Escapable {
+extension Tagged: Swift.Collection
+where Tag: ~Copyable & ~Escapable, Underlying: Swift.Collection & Escapable {
     /// The index type of the wrapped collection.
     public typealias Index = Underlying.Index
     /// The element type of the wrapped collection.
