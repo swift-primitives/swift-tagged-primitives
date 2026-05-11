@@ -14,8 +14,8 @@
 // preserves wrapper-boundary visibility; consumers importing this SLI
 // accept the conflation cost in exchange for stdlib-Sequence ergonomics.
 
-extension Tagged: Sequence
-where Tag: ~Copyable & ~Escapable, Underlying: Sequence & Escapable {
+extension Tagged: Swift.Sequence
+where Tag: ~Copyable & ~Escapable, Underlying: Swift.Sequence & Escapable {
     /// Returns an iterator over the wrapped underlying value.
     ///
     /// Forwards to `underlying.makeIterator()`. Generic algorithms over
