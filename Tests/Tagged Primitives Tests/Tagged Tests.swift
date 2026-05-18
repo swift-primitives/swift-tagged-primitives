@@ -11,6 +11,20 @@ private enum Tag1 {}
 private enum Tag2 {}
 private enum Tag3 {}
 
+// Shared fixture for ~Copyable & Carrier-conforming Underlying tests.
+// `var id` accommodates both immutable-use tests and the `modify`
+// mutating-use test. Hoisted to file scope so the typealias witness
+// `Underlying = Self` can live in an extension per [API-IMPL-008]
+// minimal-type-body — local function-scoped types cannot be extended.
+
+private struct Resource: ~Copyable, Carrier.`Protocol` {
+    var id: Int
+}
+
+extension Resource {
+    typealias Underlying = Self
+}
+
 // MARK: - Tagged
 
 @Suite
@@ -294,10 +308,10 @@ extension `Tagged Tests`.`Edge Case` {
 
     @Test
     func `map with throwing transform propagates error`() {
-        enum TestError: Swift.Error { case expected }
+        enum Failure: Swift.Error { case expected }
         let tagged: Tagged<Tag1, Int> = 42
-        #expect(throws: TestError.self) {
-            try tagged.map { _ throws(TestError) -> String in throw .expected }
+        #expect(throws: Failure.self) {
+            try tagged.map { _ throws(Failure) -> String in throw .expected }
         }
     }
 
@@ -442,20 +456,12 @@ extension `Tagged Tests`.Integration {
 
     @Test
     func `init and underlying access with noncopyable underlying value`() {
-        struct Resource: ~Copyable, Carrier.`Protocol` {
-            let id: Int
-            typealias Underlying = Self
-        }
         let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 99))
         #expect(tagged.underlying.id == 99)
     }
 
     @Test
     func `map with noncopyable underlying value`() {
-        struct Resource: ~Copyable, Carrier.`Protocol` {
-            let id: Int
-            typealias Underlying = Self
-        }
         let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 7))
         let mapped: Tagged<Tag1, Int> = tagged.map { $0.id }
         #expect(mapped.underlying == 7)
@@ -463,10 +469,6 @@ extension `Tagged Tests`.Integration {
 
     @Test
     func `retag with noncopyable underlying value`() {
-        struct Resource: ~Copyable, Carrier.`Protocol` {
-            let id: Int
-            typealias Underlying = Self
-        }
         let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 42))
         let retagged: Tagged<Tag2, Resource> = tagged.retag()
         #expect(retagged.underlying.id == 42)
@@ -474,10 +476,6 @@ extension `Tagged Tests`.Integration {
 
     @Test
     func `modify with noncopyable underlying value`() {
-        struct Resource: ~Copyable, Carrier.`Protocol` {
-            var id: Int
-            typealias Underlying = Self
-        }
         var tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 1))
         tagged.modify { $0.id = 99 }
         #expect(tagged.underlying.id == 99)
@@ -510,10 +508,6 @@ extension `Tagged Tests`.Integration {
             // than public-or-package. Tracked at
             // https://github.com/swiftlang/swift/issues/87136 — drop the
             // guard when the upstream fix lands.
-            struct Resource: ~Copyable, Carrier.`Protocol` {
-                let id: Int
-                typealias Underlying = Self
-            }
             func extract(_ t: consuming Tagged<Tag1, Resource>) -> Resource {
                 t.underlying  // direct stored field on consumed host: partial-consume
             }
@@ -566,10 +560,6 @@ extension `Tagged Tests`.Integration {
         // resulting Tagged<Tag, Resource> (which is ~Copyable & Escapable
         // per cell C) is admitted.
         func _requireEscapable<T: Escapable & ~Copyable>(_: T.Type) {}
-        struct Resource: ~Copyable, Carrier.`Protocol` {
-            let id: Int
-            typealias Underlying = Self
-        }
         _requireEscapable(Tagged<Tag1, Resource>.self)
         #expect(Bool(true))
     }
@@ -605,7 +595,7 @@ extension `Tagged Tests`.Performance {
         // (Experiments/tagged-zero-cost-codegen) carries the rigorous
         // proof; this guards against runtime regressions.
         var sum: Int = 0
-        for i in 0..<1_000 {
+        (0..<1_000).forEach { i in
             let tagged: Tagged<Tag1, Int> = .init(_unchecked: i)
             let retagged: Tagged<Tag2, Int> = tagged.retag()
             let restored: Tagged<Tag1, Int> = retagged.retag()

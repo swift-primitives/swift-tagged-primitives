@@ -41,7 +41,7 @@ extension `Tagged + Collection Tests`.Unit {
 
     @Test
     func `Tagged conforms to Collection when Underlying conforms`() {
-        func _requireCollection<T: Collection>(_: T.Type) {}
+        func _requireCollection<T: Swift.Collection>(_: T.Type) {}
         _requireCollection(Tagged<Tag1, [Int]>.self)
         _requireCollection(Tagged<Tag1, String>.self)
         #expect(Bool(true))
@@ -92,9 +92,7 @@ extension `Tagged + Collection Tests`.Performance {
         let elements = Array(0..<1_000)
         let tagged: Tagged<Tag1, [Int]> = Tagged<Tag1, [Int]>(_unchecked: elements)
         var sum = 0
-        for i in 0..<tagged.count {
-            sum &+= tagged[i]
-        }
+        tagged.forEach { sum &+= $0 }
         #expect(sum == elements.reduce(0, &+))
     }
 }
