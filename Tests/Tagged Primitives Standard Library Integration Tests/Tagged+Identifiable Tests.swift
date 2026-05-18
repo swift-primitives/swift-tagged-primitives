@@ -81,7 +81,7 @@ extension `Tagged + Identifiable Tests`.Performance {
     @Test
     func `id access batched`() {
         var sum: UInt64 = 0
-        for i: UInt64 in 0..<1_000 {
+        (0..<UInt64(1_000)).forEach { i in
             let tagged: Tagged<Tag1, DomainKey> = Tagged<Tag1, DomainKey>(_unchecked: DomainKey(id: i))
             sum &+= tagged.id
         }

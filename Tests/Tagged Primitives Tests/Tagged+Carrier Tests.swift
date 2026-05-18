@@ -165,7 +165,7 @@ extension `Tagged + Carrier Tests`.Performance {
         // through `describeIntCarrier` must compile to a direct underlying-
         // value access (no boxing, no virtual dispatch).
         var sum: Int = 0
-        for i in 0..<1_000 {
+        (0..<1_000).forEach { i in
             let tagged = Tagged<Tag1, Int>(_unchecked: i)
             sum &+= describeIntCarrier(tagged)
         }

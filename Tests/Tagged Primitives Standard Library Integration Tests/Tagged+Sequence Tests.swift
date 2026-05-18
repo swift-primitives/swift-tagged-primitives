@@ -30,7 +30,7 @@ extension `Tagged + Sequence Tests`.Unit {
 
     @Test
     func `Tagged conforms to Sequence when Underlying conforms`() {
-        func _requireSequence<T: Sequence>(_: T.Type) {}
+        func _requireSequence<T: Swift.Sequence>(_: T.Type) {}
         _requireSequence(Tagged<Tag1, [Int]>.self)
         _requireSequence(Tagged<Tag1, Set<Int>>.self)
         #expect(Bool(true))
@@ -68,13 +68,13 @@ extension `Tagged + Sequence Tests`.Integration {
     func `generic Sequence algorithm accepts Tagged`() {
         // The cost the rationale critiques: a generic T: Sequence algorithm
         // treats Tagged<Tag, [Int]> identically to [Int].
-        func sumElements<S: Sequence>(_ s: S) -> Int where S.Element == Int {
+        func sum<S: Swift.Sequence>(_ s: S) -> Int where S.Element == Int {
             s.reduce(0, +)
         }
         let tagged: Tagged<Tag1, [Int]> = [1, 2, 3, 4]
         let plain: [Int] = [1, 2, 3, 4]
-        #expect(sumElements(tagged) == sumElements(plain))
-        #expect(sumElements(tagged) == 10)
+        #expect(sum(tagged) == sum(plain))
+        #expect(sum(tagged) == 10)
     }
 }
 

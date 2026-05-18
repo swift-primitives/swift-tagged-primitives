@@ -93,7 +93,7 @@ extension `Tagged + LosslessStringConvertible Tests`.Performance {
     @Test
     func `roundtrip batched`() {
         var ok = 0
-        for i in 0..<1_000 {
+        (0..<1_000).forEach { i in
             let original: Tagged<Tag1, Int> = Tagged<Tag1, Int>(_unchecked: i)
             if let reconstructed: Tagged<Tag1, Int> = Tagged<Tag1, Int>(original.description),
                 reconstructed == original
