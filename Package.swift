@@ -47,6 +47,7 @@ let package = Package(
             dependencies: [
                 "Tagged Primitives",
                 "Tagged Primitives Standard Library Integration",
+                .product(name: "Carrier Primitives Test Support", package: "swift-carrier-primitives"),
             ],
             path: "Tests/Support"
         ),
