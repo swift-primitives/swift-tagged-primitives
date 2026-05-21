@@ -49,31 +49,22 @@ let package = Package(
         ),
     ],
     dependencies: [
-        // Path-based deps. URL-based switch deferred post-cohort because
-        // the new repos (swift-manifest-primitives, swift-linter-rules)
-        // ship PRIVATE; URL-based SwiftPM resolution would fail at CI
-        // runtime without auth tokens. Path-based works for local
-        // development against the developer's clone-mirror layout
-        // (~/Developer/<org>/<pkg>); when CI auth is sorted (or selective
-        // visibility flips happen) a small follow-up dispatch switches
-        // to URL-based form.
-
-        // Engine + reporter umbrella. Post-Phase-B.1 swift-linter no longer
-        // ships rule packs; the consumer declares them directly below.
+        // Engine — provides Lint.run() and the engine types.
         .package(path: "../../../swift-foundations/swift-linter"),
-        // Institute-canonical rule packs — the consumer wires the subset
-        // referenced by the file-scope manifest's enabledRuleIDs.
+        // Primitives-tier rules bundle — publishes Lint.Rule.Bundle.primitives,
+        // which transitively pulls institute + universal rules. ONE direct
+        // dep; SwiftPM walks the chain for the rest.
+        .package(path: "../../swift-primitives-linter-rules"),
+        // swift-linter-rules path dep is needed only because the custom
+        // rule's test target depends on Linter Rules Test Support; the
+        // executable itself never references swift-linter-rules products
+        // directly.
         .package(path: "../../../swift-foundations/swift-linter-rules"),
-        // File.Path used to convert CLI argv strings into the typed paths
-        // Lint.Run.run consumes.
-        .package(path: "../../../swift-foundations/swift-file-system"),
-        // L1 primitives surface used by the custom rule's Lint.Rule.Protocol conformance.
+        // L1 primitives surface used by the custom rule (Lint.Rule witness types).
         .package(path: "../../swift-linter-primitives"),
-        // Domain dep — the consumer (swift-tagged-primitives) IS the domain;
-        // imported by the custom rule to validate the PoC's load-bearing
-        // domain-aware-import mechanism.
+        // Domain dep — the consumer IS the domain; the custom rule imports it.
         .package(path: ".."),
-        // SwiftSyntax for the rule's AST visitor.
+        // SwiftSyntax for the custom rule's AST visitor.
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"603.0.0"),
     ],
     targets: [
@@ -89,19 +80,8 @@ let package = Package(
             name: "Lint",
             dependencies: [
                 "Linter Rule Tagged Domain Audit",
-                .product(name: "File System", package: "swift-file-system"),
                 .product(name: "Linter", package: "swift-linter"),
-                .product(name: "Linter Reporter Text", package: "swift-linter"),
-                // Tier 2 institute baselines (R1–R5).
-                .product(name: "Linter Rule Unchecked", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Cardinal", package: "swift-linter-rules"),
-                .product(name: "Linter Rule RawValue", package: "swift-linter-rules"),
-                // Carry-forward institute-canonical rule (Phase 2).
-                .product(name: "Linter Rule ResultBuilder", package: "swift-linter-rules"),
-                // Wave-1 AI-harness rules (Phase 4).
-                .product(name: "Linter Rule Try", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Throws", package: "swift-linter-rules"),
-                .product(name: "Linter Rule Naming", package: "swift-linter-rules"),
+                .product(name: "Linter Primitives Rules", package: "swift-primitives-linter-rules"),
             ]
         ),
         .testTarget(
@@ -109,6 +89,7 @@ let package = Package(
             dependencies: [
                 "Linter Rule Tagged Domain Audit",
                 .product(name: "Linter Primitives", package: "swift-linter-primitives"),
+                .product(name: "Linter Rules Test Support", package: "swift-linter-rules"),
                 .product(name: "SwiftSyntax", package: "swift-syntax"),
                 .product(name: "SwiftParser", package: "swift-syntax"),
             ]
