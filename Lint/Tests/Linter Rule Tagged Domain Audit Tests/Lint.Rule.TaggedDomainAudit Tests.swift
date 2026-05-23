@@ -123,4 +123,42 @@ extension Lint.Rule.`tagged unchecked with typed alternative Tests`.`Edge Case` 
         let findings = Lint.Rule.`tagged unchecked with typed alternative Tests`.findings(in: source)
         #expect(findings.isEmpty)
     }
+
+    @Test
+    func `Tagged with _unchecked inside @Test function is NOT flagged`() {
+        let source = """
+        @Test
+        func someBehavior() {
+            let x = Tagged<Tag, Int>(_unchecked: 42)
+            _ = x
+        }
+        """
+        let findings = Lint.Rule.`tagged unchecked with typed alternative Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
+
+    @Test
+    func `Tagged with _unchecked inside non-@Test function is flagged`() {
+        let source = """
+        func someBehavior() {
+            let x = Tagged<Tag, Int>(_unchecked: 42)
+            _ = x
+        }
+        """
+        let findings = Lint.Rule.`tagged unchecked with typed alternative Tests`.findings(in: source)
+        #expect(findings.count == 1)
+    }
+
+    @Test
+    func `Tagged with _unchecked inside @Test function with module qualifier is NOT flagged`() {
+        let source = """
+        @Testing.Test
+        func someBehavior() {
+            let x = Tagged<Tag, Int>(_unchecked: 42)
+            _ = x
+        }
+        """
+        let findings = Lint.Rule.`tagged unchecked with typed alternative Tests`.findings(in: source)
+        #expect(findings.isEmpty)
+    }
 }
