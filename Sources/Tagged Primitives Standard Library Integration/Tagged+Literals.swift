@@ -42,7 +42,7 @@
 // research) remain the safest pattern when the footgun is unacceptable.
 
 extension Tagged: ExpressibleByIntegerLiteral
-where Tag: ~Copyable, Underlying: ExpressibleByIntegerLiteral {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByIntegerLiteral {
     /// Constructs a tagged value from an integer literal by forwarding to `Underlying(integerLiteral:)`.
     ///
     /// Marked `@_disfavoredOverload` to keep domain-specific inits ranked
@@ -54,7 +54,7 @@ where Tag: ~Copyable, Underlying: ExpressibleByIntegerLiteral {
 }
 
 extension Tagged: ExpressibleByFloatLiteral
-where Tag: ~Copyable, Underlying: ExpressibleByFloatLiteral {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByFloatLiteral {
     /// Constructs a tagged value from a floating-point literal by
     /// forwarding to `Underlying(floatLiteral:)`.
     @_disfavoredOverload
@@ -64,7 +64,7 @@ where Tag: ~Copyable, Underlying: ExpressibleByFloatLiteral {
 }
 
 extension Tagged: ExpressibleByUnicodeScalarLiteral
-where Tag: ~Copyable, Underlying: ExpressibleByUnicodeScalarLiteral {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByUnicodeScalarLiteral {
     /// Constructs a tagged value from a Unicode-scalar literal by
     /// forwarding to `Underlying(unicodeScalarLiteral:)`.
     @_disfavoredOverload
@@ -74,7 +74,7 @@ where Tag: ~Copyable, Underlying: ExpressibleByUnicodeScalarLiteral {
 }
 
 extension Tagged: ExpressibleByExtendedGraphemeClusterLiteral
-where Tag: ~Copyable, Underlying: ExpressibleByExtendedGraphemeClusterLiteral {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByExtendedGraphemeClusterLiteral {
     /// Constructs a tagged value from an extended-grapheme-cluster
     /// literal by forwarding to `Underlying(extendedGraphemeClusterLiteral:)`.
     @_disfavoredOverload
@@ -84,7 +84,7 @@ where Tag: ~Copyable, Underlying: ExpressibleByExtendedGraphemeClusterLiteral {
 }
 
 extension Tagged: ExpressibleByStringLiteral
-where Tag: ~Copyable, Underlying: ExpressibleByStringLiteral {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByStringLiteral {
     /// Constructs a tagged value from a string literal by forwarding to `Underlying(stringLiteral:)`.
     ///
     /// Note: in SLI scope, `Tagged<Tag, T>("string")` (parenthesized init
@@ -97,7 +97,7 @@ where Tag: ~Copyable, Underlying: ExpressibleByStringLiteral {
 }
 
 extension Tagged: ExpressibleByBooleanLiteral
-where Tag: ~Copyable, Underlying: ExpressibleByBooleanLiteral {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByBooleanLiteral {
     /// Constructs a tagged value from a Boolean literal by forwarding
     /// to `Underlying(booleanLiteral:)`.
     @_disfavoredOverload
@@ -107,7 +107,7 @@ where Tag: ~Copyable, Underlying: ExpressibleByBooleanLiteral {
 }
 
 extension Tagged: ExpressibleByStringInterpolation
-where Tag: ~Copyable, Underlying: ExpressibleByStringInterpolation {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByStringInterpolation {
     /// Constructs a tagged value from a string interpolation by
     /// forwarding to `Underlying(stringInterpolation:)`.
     @_disfavoredOverload
@@ -150,7 +150,7 @@ where Tag: ~Copyable, Underlying: ExpressibleByStringInterpolation {
 //   carve-out adopts verbatim (with the conformance constraint added).
 
 extension Tagged: ExpressibleByArrayLiteral
-where Tag: ~Copyable, Underlying: ExpressibleByArrayLiteral {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByArrayLiteral {
     /// Constructs a tagged value from an array literal.
     ///
     /// Reinterprets `Underlying`'s variadic `init(arrayLiteral:)` as an
@@ -171,7 +171,7 @@ where Tag: ~Copyable, Underlying: ExpressibleByArrayLiteral {
 }
 
 extension Tagged: ExpressibleByDictionaryLiteral
-where Tag: ~Copyable, Underlying: ExpressibleByDictionaryLiteral {
+where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByDictionaryLiteral {
     /// Constructs a tagged value from a dictionary literal.
     ///
     /// Reinterprets `Underlying`'s variadic `init(dictionaryLiteral:)` as a

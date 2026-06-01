@@ -23,7 +23,7 @@
     /// conformance, no duplicate-conformance conflicts when multiple downstream
     /// packages are imported together.
     extension Tagged: AtomicRepresentable
-    where Underlying: AtomicRepresentable, Tag: ~Copyable {
+    where Underlying: AtomicRepresentable, Tag: ~Copyable & ~Escapable {
         /// Inherits the storage representation from `Underlying`.
         public typealias AtomicRepresentation = Underlying.AtomicRepresentation
 
