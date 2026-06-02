@@ -13,7 +13,7 @@ let package = Package(
     platforms: [.macOS(.v26)],
     dependencies: [
         .package(path: "../.."),
-        .package(path: "../../../swift-carrier-primitives"),
+        .package(url: "https://github.com/swift-primitives/swift-carrier-primitives.git", branch: "main"),
     ],
     targets: [
         .target(

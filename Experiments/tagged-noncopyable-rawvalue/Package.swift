@@ -7,10 +7,10 @@ let package = Package(
     platforms: [.macOS(.v26)],
     dependencies: [
         .package(path: "../.."),
-        .package(path: "../../../swift-carrier-primitives"),
-        .package(path: "../../../swift-equation-primitives"),
-        .package(path: "../../../swift-comparison-primitives"),
-        .package(path: "../../../swift-hash-primitives"),
+        .package(url: "https://github.com/swift-primitives/swift-carrier-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-equation-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-comparison-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-hash-primitives.git", branch: "main"),
     ],
     targets: [
         .executableTarget(
