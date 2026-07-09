@@ -147,10 +147,10 @@ where Tag: ~Copyable & ~Escapable, Underlying: BitwiseCopyable & Escapable {}
     where Tag: ~Copyable & ~Escapable, Underlying: Hashable & Escapable {}
 #endif
 
-#if !hasFeature(Embedded)
-    extension Tagged: Codable
-    where Tag: ~Copyable & ~Escapable, Underlying: Codable & Escapable {}
-#endif
+// `Codable` is hand-written in `Tagged+Codable.swift` (single-value container,
+// bare wire form) rather than compiler-synthesized: synthesis would derive from
+// the stored `underlying` property and emit a keyed `{"underlying":…}` object,
+// breaking every consumer that round-trips a domain id through JSON.
 
 #if compiler(>=6.4)
     extension Tagged: Comparable
