@@ -1,3 +1,3 @@
+@_exported public import Carrier_Primitives_Test_Support
 @_exported public import Tagged_Primitives
 @_exported public import Tagged_Primitives_Standard_Library_Integration
-@_exported public import Carrier_Primitives_Test_Support

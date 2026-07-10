@@ -167,7 +167,7 @@ private enum JSONNode: Equatable {
     case double(Double)
     case string(String)
     case object([Member])
-    case array([JSONNode])
+    case array([Self])
 
     struct Member: Equatable {
         let key: String
@@ -182,9 +182,11 @@ private func renderJSON(_ node: JSONNode) -> String {
     case .int(let value): return String(value)
     case .double(let value): return String(value)
     case .string(let value): return "\"\(escapeJSON(value))\""
+
     case .object(let members):
         let body = members.map { "\"\(escapeJSON($0.key))\":\(renderJSON($0.value))" }.joined(separator: ",")
         return "{\(body)}"
+
     case .array(let items):
         return "[\(items.map(renderJSON).joined(separator: ","))]"
     }
@@ -202,7 +204,7 @@ private func escapeJSON(_ value: String) -> String {
     return out
 }
 
-private enum CodecError: Error { case shape(String) }
+private enum CodecError: Swift.Error { case shape(String) }
 
 private func encodeToNode<T: Encodable>(_ value: T) throws -> JSONNode {
     let sink = NodeRef()
@@ -339,7 +341,8 @@ private struct TreeSingleValueDecodingContainer: SingleValueDecodingContainer {
     var codingPath: [any CodingKey]
 
     func decodeNil() -> Bool {
-        if case .null = node { return true } else { return false }
+        guard case .null = node else { return false }
+        return true
     }
     func decode(_ type: Bool.Type) throws -> Bool {
         guard case .bool(let value) = node else { throw CodecError.shape("expected Bool") }
