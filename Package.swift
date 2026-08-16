@@ -26,20 +26,26 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/swift-primitives/swift-carrier-primitives.git", branch: "main"),
+        .package(
+            url: "https://github.com/swift-primitives/swift-carrier-primitives.git",
+            branch: "main"
+        )
     ],
     targets: [
         .target(
             name: "Tagged Primitives",
             dependencies: [
-                .product(name: "Carrier Primitives", package: "swift-carrier-primitives"),
+                .product(name: "Carrier Primitives", package: "swift-carrier-primitives")
             ]
         ),
         .target(
             name: "Tagged Primitives Standard Library Integration",
             dependencies: [
                 "Tagged Primitives",
-                .product(name: "Carrier Primitives Standard Library Integration", package: "swift-carrier-primitives"),
+                .product(
+                    name: "Carrier Primitives Standard Library Integration",
+                    package: "swift-carrier-primitives"
+                ),
             ]
         ),
         .target(
@@ -47,7 +53,10 @@ let package = Package(
             dependencies: [
                 "Tagged Primitives",
                 "Tagged Primitives Standard Library Integration",
-                .product(name: "Carrier Primitives Test Support", package: "swift-carrier-primitives"),
+                .product(
+                    name: "Carrier Primitives Test Support",
+                    package: "swift-carrier-primitives"
+                ),
                 .product(name: "Carrier Primitives", package: "swift-carrier-primitives"),
             ],
             path: "Tests/Support"
@@ -59,7 +68,10 @@ let package = Package(
                 "Tagged Primitives Standard Library Integration",
                 "Tagged Primitives Test Support",
                 .product(name: "Carrier Primitives", package: "swift-carrier-primitives"),
-                .product(name: "Carrier Primitives Standard Library Integration", package: "swift-carrier-primitives"),
+                .product(
+                    name: "Carrier Primitives Standard Library Integration",
+                    package: "swift-carrier-primitives"
+                ),
             ]
         ),
         .testTarget(

@@ -112,7 +112,9 @@ extension `Tagged Tests`.Unit {
     func `different tags produce identical layout`() {
         #expect(MemoryLayout<Tagged<Tag1, Int>>.size == MemoryLayout<Tagged<Tag2, Int>>.size)
         #expect(MemoryLayout<Tagged<Tag1, Int>>.stride == MemoryLayout<Tagged<Tag2, Int>>.stride)
-        #expect(MemoryLayout<Tagged<Tag1, Int>>.alignment == MemoryLayout<Tagged<Tag2, Int>>.alignment)
+        #expect(
+            MemoryLayout<Tagged<Tag1, Int>>.alignment == MemoryLayout<Tagged<Tag2, Int>>.alignment
+        )
     }
 
     // MARK: underlying

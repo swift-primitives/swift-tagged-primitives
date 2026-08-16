@@ -36,7 +36,7 @@ import PackageDescription
 let package = Package(
     name: "Lint",
     platforms: [
-        .macOS(.v26),
+        .macOS(.v26)
     ],
     products: [
         .executable(
@@ -54,14 +54,23 @@ let package = Package(
         // Primitives-tier rules bundle — publishes Lint.Rule.Bundle.primitives,
         // which transitively pulls institute + universal rules. ONE direct
         // dep; SwiftPM walks the chain for the rest.
-        .package(url: "https://github.com/swift-primitives/swift-primitives-linter-rules.git", branch: "main"),
+        .package(
+            url: "https://github.com/swift-primitives/swift-primitives-linter-rules.git",
+            branch: "main"
+        ),
         // swift-linter-rules path dep is needed only because the custom
         // rule's test target depends on Linter Rules Test Support; the
         // executable itself never references swift-linter-rules products
         // directly.
-        .package(url: "https://github.com/swift-foundations/swift-linter-rules.git", branch: "main"),
+        .package(
+            url: "https://github.com/swift-foundations/swift-linter-rules.git",
+            branch: "main"
+        ),
         // L1 primitives surface used by the custom rule (Lint.Rule witness types).
-        .package(url: "https://github.com/swift-primitives/swift-linter-primitives.git", branch: "main"),
+        .package(
+            url: "https://github.com/swift-primitives/swift-linter-primitives.git",
+            branch: "main"
+        ),
         // Domain dep — the consumer IS the domain; the custom rule imports it.
         .package(path: ".."),
         // SwiftSyntax for the custom rule's AST visitor.

@@ -20,7 +20,9 @@ internal import Linter
 internal import Linter_Primitives_Rules
 internal import Linter_Rule_Tagged_Domain_Audit
 
-Lint.run(configuration: Lint.Configuration {
-    Lint.Rule.Bundle.primitives
-    Lint.Rule.Configuration.enable(.`tagged unchecked with typed alternative`)
-})
+Lint.run(
+    configuration: Lint.Configuration {
+        Lint.Rule.Bundle.primitives
+        Lint.Rule.Configuration.enable(.`tagged unchecked with typed alternative`)
+    }
+)
