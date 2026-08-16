@@ -78,7 +78,8 @@ where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByExtendedGraphemeClus
     /// Constructs a tagged value from an extended-grapheme-cluster
     /// literal by forwarding to `Underlying(extendedGraphemeClusterLiteral:)`.
     @_disfavoredOverload
-    public init(extendedGraphemeClusterLiteral value: Underlying.ExtendedGraphemeClusterLiteralType) {
+    public init(extendedGraphemeClusterLiteral value: Underlying.ExtendedGraphemeClusterLiteralType)
+    {
         self.init(_unchecked: Underlying(extendedGraphemeClusterLiteral: value))
     }
 }
@@ -182,7 +183,8 @@ where Tag: ~Copyable & ~Escapable, Underlying: ExpressibleByDictionaryLiteral {
     @_disfavoredOverload
     public init(dictionaryLiteral elements: (Underlying.Key, Underlying.Value)...) {
         let f = unsafe unsafeBitCast(
-            Underlying.init(dictionaryLiteral:) as ((Underlying.Key, Underlying.Value)...) -> Underlying,
+            Underlying.init(dictionaryLiteral:)
+                as ((Underlying.Key, Underlying.Value)...) -> Underlying,
             to: (([(Underlying.Key, Underlying.Value)]) -> Underlying).self
         )
         self.init(_unchecked: f(elements))

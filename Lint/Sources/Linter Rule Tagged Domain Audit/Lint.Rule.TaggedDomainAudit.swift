@@ -75,7 +75,7 @@ internal let taggedDomainAuditMessage: Swift.String =
 /// decl; if its name matches an entry, exempt the use.
 @usableFromInline
 internal let taggedDomainAuditExemptOperations: [Swift.String: Swift.String] = [
-    "map":   "preserve-shape transform; closure output is opaque-by-construction",
+    "map": "preserve-shape transform; closure output is opaque-by-construction",
     "retag": "phantom-tag swap; underlying validated upstream by Tagged construction invariant",
 ]
 
@@ -95,7 +95,7 @@ internal let taggedDomainAuditExemptOperations: [Swift.String: Swift.String] = [
 /// rule's recommendation does not apply.
 @usableFromInline
 internal let taggedDomainAuditExemptAttributes: [Swift.String: Swift.String] = [
-    "Test": "swift-testing test function; tests exercise the full API surface including _unchecked",
+    "Test": "swift-testing test function; tests exercise the full API surface including _unchecked"
 ]
 
 /// Domain anchor — references `Tagged_Primitives.Tagged` at the type
@@ -184,7 +184,7 @@ internal final class TaggedDomainAuditVisitor: SyntaxVisitor {
 
     private static func hasExemptAttribute(_ attributes: AttributeListSyntax) -> Swift.Bool {
         for element in attributes {
-            guard case let .attribute(attribute) = element else { continue }
+            guard case .attribute(let attribute) = element else { continue }
             let name: Swift.String
             if let ident = attribute.attributeName.as(IdentifierTypeSyntax.self) {
                 name = ident.name.text

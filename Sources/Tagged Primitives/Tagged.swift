@@ -52,7 +52,9 @@
 /// whose `Underlying` cannot satisfy Carrier's consuming init (e.g.,
 /// `Property.Inout` wrapping `Tagged<Tag, Ownership.Inout<Base>>`).
 @frozen
-public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable>: ~Copyable, ~Escapable {
+public struct Tagged<Tag: ~Copyable & ~Escapable, Underlying: ~Copyable & ~Escapable>: ~Copyable,
+    ~Escapable
+{
     /// The wrapped underlying value.
     ///
     /// Public-readable, package-mutable. The `package(set)` access modifier
@@ -277,7 +279,9 @@ extension Tagged where Tag: ~Copyable & ~Escapable, Underlying: ~Copyable {
     /// - Parameter _: The new tag type (inferred when possible).
     /// - Returns: A new tagged value with the new tag and the same underlying.
     @inlinable
-    public consuming func retag<New: ~Copyable & ~Escapable>(_: New.Type = New.self) -> Tagged<New, Underlying> {
+    public consuming func retag<New: ~Copyable & ~Escapable>(
+        _: New.Type = New.self
+    ) -> Tagged<New, Underlying> {
         Self.retag(self, to: New.self)
     }
 }

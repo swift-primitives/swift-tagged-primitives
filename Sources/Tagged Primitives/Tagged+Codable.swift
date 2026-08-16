@@ -27,7 +27,6 @@
         /// transparent: a `Tagged<Tag, U>` decodes from exactly what a bare
         /// `U` would — the phantom `Tag` never appears on the wire.
         @inlinable
-        // swiftlint:disable:next no_any_protocol_existential typed_throws_required - exact Decodable protocol requirement signature (stdlib; rule-exemptions protocol-requirement shape)
         public init(from decoder: any Decoder) throws {
             let container = try decoder.singleValueContainer()
             self.init(_unchecked: try container.decode(Underlying.self))
@@ -40,7 +39,6 @@
         /// `Tagged<Customer, String>("cus_123")` encodes as the JSON string
         /// `"cus_123"`, never `{"underlying":"cus_123"}`.
         @inlinable
-        // swiftlint:disable:next no_any_protocol_existential typed_throws_required - exact Encodable protocol requirement signature (stdlib; rule-exemptions protocol-requirement shape)
         public func encode(to encoder: any Encoder) throws {
             var container = encoder.singleValueContainer()
             try container.encode(self.underlying)

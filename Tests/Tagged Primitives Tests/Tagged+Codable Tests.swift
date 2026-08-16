@@ -118,7 +118,10 @@ extension `Tagged + Codable Tests`.Integration {
 
     @Test
     func `nested Tagged field in a struct encodes as a bare value`() throws {
-        let account = Account(id: Tagged<Customer, String>(_unchecked: "cus_123"), name: "Acme Corp")
+        let account = Account(
+            id: Tagged<Customer, String>(_unchecked: "cus_123"),
+            name: "Acme Corp"
+        )
         let json = renderJSON(try encodeToNode(account))
 
         // The `id` field is the bare string, NOT a nested `{"underlying":…}`.
@@ -144,7 +147,10 @@ extension `Tagged + Codable Tests`.Performance {
         // each value must survive encode → node → decode unchanged.
         try (0..<1_000).forEach { i in
             let original = Tagged<Customer, Int>(_unchecked: i)
-            let restored = try decodeFromNode(Tagged<Customer, Int>.self, try encodeToNode(original))
+            let restored = try decodeFromNode(
+                Tagged<Customer, Int>.self,
+                try encodeToNode(original)
+            )
             #expect(restored == original)
         }
     }
@@ -184,7 +190,9 @@ private func renderJSON(_ node: JSONNode) -> String {
     case .string(let value): return "\"\(escapeJSON(value))\""
 
     case .object(let members):
-        let body = members.map { "\"\(escapeJSON($0.key))\":\(renderJSON($0.value))" }.joined(separator: ",")
+        let body = members.map { "\"\(escapeJSON($0.key))\":\(renderJSON($0.value))" }.joined(
+            separator: ","
+        )
         return "{\(body)}"
 
     case .array(let items):
@@ -301,7 +309,10 @@ private final class TreeKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingCon
         append(child.node, key)
     }
 
-    func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
+    func nestedContainer<NestedKey>(
+        keyedBy keyType: NestedKey.Type,
+        forKey key: Key
+    ) -> KeyedEncodingContainer<NestedKey> {
         fatalError("TreeEncoder: nested keyed containers are unused by these tests")
     }
     func nestedUnkeyedContainer(forKey key: Key) -> any UnkeyedEncodingContainer {
@@ -326,7 +337,9 @@ private struct TreeDecoder: Decoder {
         guard case .object(let members) = node else {
             throw CodecError.shape("expected object, found \(node)")
         }
-        return KeyedDecodingContainer(TreeKeyedDecodingContainer<Key>(members: members, codingPath: codingPath))
+        return KeyedDecodingContainer(
+            TreeKeyedDecodingContainer<Key>(members: members, codingPath: codingPath)
+        )
     }
     func unkeyedContainer() throws -> any UnkeyedDecodingContainer {
         throw CodecError.shape("unkeyed containers are unused by these tests")
@@ -390,20 +403,48 @@ private struct TreeKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContaine
     }
 
     func decodeNil(forKey key: Key) throws -> Bool { try single(key).decodeNil() }
-    func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool { try single(key).decode(Bool.self) }
-    func decode(_ type: String.Type, forKey key: Key) throws -> String { try single(key).decode(String.self) }
-    func decode(_ type: Double.Type, forKey key: Key) throws -> Double { try single(key).decode(Double.self) }
-    func decode(_ type: Float.Type, forKey key: Key) throws -> Float { try single(key).decode(Float.self) }
-    func decode(_ type: Int.Type, forKey key: Key) throws -> Int { try single(key).decode(Int.self) }
-    func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 { try single(key).decode(Int8.self) }
-    func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 { try single(key).decode(Int16.self) }
-    func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 { try single(key).decode(Int32.self) }
-    func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 { try single(key).decode(Int64.self) }
-    func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt { try single(key).decode(UInt.self) }
-    func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 { try single(key).decode(UInt8.self) }
-    func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 { try single(key).decode(UInt16.self) }
-    func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 { try single(key).decode(UInt32.self) }
-    func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 { try single(key).decode(UInt64.self) }
+    func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
+        try single(key).decode(Bool.self)
+    }
+    func decode(_ type: String.Type, forKey key: Key) throws -> String {
+        try single(key).decode(String.self)
+    }
+    func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
+        try single(key).decode(Double.self)
+    }
+    func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
+        try single(key).decode(Float.self)
+    }
+    func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
+        try single(key).decode(Int.self)
+    }
+    func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
+        try single(key).decode(Int8.self)
+    }
+    func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
+        try single(key).decode(Int16.self)
+    }
+    func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
+        try single(key).decode(Int32.self)
+    }
+    func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
+        try single(key).decode(Int64.self)
+    }
+    func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
+        try single(key).decode(UInt.self)
+    }
+    func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
+        try single(key).decode(UInt8.self)
+    }
+    func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
+        try single(key).decode(UInt16.self)
+    }
+    func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
+        try single(key).decode(UInt32.self)
+    }
+    func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
+        try single(key).decode(UInt64.self)
+    }
     func decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
         guard let member = members.first(where: { $0.key == key.stringValue }) else {
             throw CodecError.shape("missing key \(key.stringValue)")
@@ -411,7 +452,10 @@ private struct TreeKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContaine
         return try T(from: TreeDecoder(node: member.value, codingPath: codingPath))
     }
 
-    func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: Key) throws -> KeyedDecodingContainer<NestedKey> {
+    func nestedContainer<NestedKey>(
+        keyedBy type: NestedKey.Type,
+        forKey key: Key
+    ) throws -> KeyedDecodingContainer<NestedKey> {
         fatalError("TreeDecoder: nested keyed containers are unused by these tests")
     }
     func nestedUnkeyedContainer(forKey key: Key) throws -> any UnkeyedDecodingContainer {
