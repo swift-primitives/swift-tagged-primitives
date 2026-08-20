@@ -494,22 +494,17 @@ extension `Tagged Tests`.Integration {
         #expect(MemoryLayout<Tagged<Tag1, Resource>>.alignment == MemoryLayout<Resource>.alignment)
     }
 
-    #if !os(Windows) && swift(<6.4)
+    #if !os(Windows)
         @Test
         func `consume-extract noncopyable underlying out of consumed Tagged`() {
-            // Regression test: pre-rename `public var rawValue` was a stored
+            // Regression test: `public var rawValue` was a stored
             // property allowing consume-extract on a consumed `tagged`. The
             // 96f2a76 rename converted to a `_read` accessor and lost this
             // capability. The fix restored a stored `public package(set) var
             // underlying` (this experiment + main commit).
             //
-            // Guarded out on +Asserts toolchains (Windows 6.3 RELEASE and
-            // Swift 6.4-dev nightly) because compiling this test triggers a
-            // MoveOnlyChecker assertion on partial-consume of a ~Copyable
-            // field whose nominal type's formal access scope is narrower
-            // than public-or-package. Tracked at
-            // https://github.com/swiftlang/swift/issues/87136 — drop the
-            // guard when the upstream fix lands.
+            // This remains excluded on Windows, where the MoveOnlyChecker
+            // assertion is tracked at https://github.com/swiftlang/swift/issues/87136.
             func extract(_ t: consuming Tagged<Tag1, Resource>) -> Resource {
                 t.underlying  // direct stored field on consumed host: partial-consume
             }

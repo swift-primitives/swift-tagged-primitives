@@ -137,90 +137,46 @@ where Tag: ~Copyable & ~Escapable, Underlying: BitwiseCopyable & Escapable {}
 // SE-0499: Swift.Equatable, Swift.Hashable, Swift.Comparable no longer imply
 // Copyable in Swift 6.4. The & ~Copyable suppression lets these conformances
 // apply to ~Copyable Underlying types.
-#if compiler(>=6.4)
-    extension Tagged: Equatable
-    where Tag: ~Copyable & ~Escapable, Underlying: Equatable & ~Copyable & Escapable {}
-    extension Tagged: Hashable
-    where Tag: ~Copyable & ~Escapable, Underlying: Hashable & ~Copyable & Escapable {}
-#else
-    extension Tagged: Equatable
-    where Tag: ~Copyable & ~Escapable, Underlying: Equatable & Escapable {}
-    extension Tagged: Hashable
-    where Tag: ~Copyable & ~Escapable, Underlying: Hashable & Escapable {}
-#endif
+extension Tagged: Equatable
+where Tag: ~Copyable & ~Escapable, Underlying: Equatable & ~Copyable & Escapable {}
+extension Tagged: Hashable
+where Tag: ~Copyable & ~Escapable, Underlying: Hashable & ~Copyable & Escapable {}
 
 // `Codable` is hand-written in `Tagged+Codable.swift` (single-value container,
 // bare wire form) rather than compiler-synthesized: synthesis would derive from
 // the stored `underlying` property and emit a keyed `{"underlying":…}` object,
 // breaking every consumer that round-trips a domain id through JSON.
 
-#if compiler(>=6.4)
-    extension Tagged: Comparable
-    where Tag: ~Copyable & ~Escapable, Underlying: Comparable & ~Copyable & Escapable {
-        /// Compares two tagged values by their underlying values, preserving phantom-tag isolation.
-        @inlinable
-        public static func < (lhs: borrowing Tagged, rhs: borrowing Tagged) -> Bool {
-            lhs.underlying < rhs.underlying
-        }
-
-        /// Returns the greater of two tagged values.
-        ///
-        /// - Parameters:
-        ///   - a: The first tagged value.
-        ///   - b: The second tagged value.
-        /// - Returns: The greater of `a` and `b`.
-        @inlinable
-        public static func max(_ a: consuming Self, _ b: consuming Self) -> Self {
-            a.underlying >= b.underlying ? a : b
-        }
-
-        /// Returns the lesser of two tagged values.
-        ///
-        /// - Parameters:
-        ///   - a: The first tagged value.
-        ///   - b: The second tagged value.
-        /// - Returns: The lesser of `a` and `b`.
-        @inlinable
-        public static func min(_ a: consuming Self, _ b: consuming Self) -> Self {
-            a.underlying <= b.underlying ? a : b
-        }
+extension Tagged: Comparable
+where Tag: ~Copyable & ~Escapable, Underlying: Comparable & ~Copyable & Escapable {
+    /// Compares two tagged values by their underlying values, preserving phantom-tag isolation.
+    @inlinable
+    public static func < (lhs: borrowing Tagged, rhs: borrowing Tagged) -> Bool {
+        lhs.underlying < rhs.underlying
     }
-#else
-    extension Tagged: Comparable
-    where Tag: ~Copyable & ~Escapable, Underlying: Comparable & Escapable {
-        /// Compares two tagged values by their underlying values, preserving phantom-tag isolation.
-        @inlinable
-        public static func < (lhs: Tagged, rhs: Tagged) -> Bool {
-            lhs.underlying < rhs.underlying
-        }
 
-        /// Returns the greater of two tagged values.
-        ///
-        /// Equivalent to `Swift.max(a, b)` but avoids verbose type annotations.
-        ///
-        /// - Parameters:
-        ///   - a: The first tagged value.
-        ///   - b: The second tagged value.
-        /// - Returns: The greater of `a` and `b`.
-        @inlinable
-        public static func max(_ a: Self, _ b: Self) -> Self {
-            a.underlying >= b.underlying ? a : b
-        }
-
-        /// Returns the lesser of two tagged values.
-        ///
-        /// Equivalent to `Swift.min(a, b)` but avoids verbose type annotations.
-        ///
-        /// - Parameters:
-        ///   - a: The first tagged value.
-        ///   - b: The second tagged value.
-        /// - Returns: The lesser of `a` and `b`.
-        @inlinable
-        public static func min(_ a: Self, _ b: Self) -> Self {
-            a.underlying <= b.underlying ? a : b
-        }
+    /// Returns the greater of two tagged values.
+    ///
+    /// - Parameters:
+    ///   - a: The first tagged value.
+    ///   - b: The second tagged value.
+    /// - Returns: The greater of `a` and `b`.
+    @inlinable
+    public static func max(_ a: consuming Self, _ b: consuming Self) -> Self {
+        a.underlying >= b.underlying ? a : b
     }
-#endif
+
+    /// Returns the lesser of two tagged values.
+    ///
+    /// - Parameters:
+    ///   - a: The first tagged value.
+    ///   - b: The second tagged value.
+    /// - Returns: The lesser of `a` and `b`.
+    @inlinable
+    public static func min(_ a: consuming Self, _ b: consuming Self) -> Self {
+        a.underlying <= b.underlying ? a : b
+    }
+}
 
 // MARK: - Functor (Static Implementation)
 
