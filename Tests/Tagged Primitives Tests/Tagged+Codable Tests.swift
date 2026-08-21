@@ -2,28 +2,12 @@ import Testing
 
 @testable import Tagged_Primitives
 
-// Wire-form checks for `Tagged: Codable`. `Tagged` must encode/decode as the
-// BARE underlying value (a single value), NOT as a keyed `{"underlying": …}`
-// object — otherwise every consumer that round-trips a domain id through JSON
-// breaks. The exact shape is asserted against a rendered JSON string produced
-// by a minimal, stdlib-only tree codec (defined at the bottom of this file), so
-// the primitive's test surface stays Foundation-free per [PRIM-FOUND-001] — no
-// `JSONEncoder`. The codec models a `Tagged<Customer, String>("cus_123")` and
-// asserts it renders as `"cus_123"`, never `{"underlying":"cus_123"}`.
-
-// Tagged is generic — parallel namespace pattern per [SWIFT-TEST-003].
-
 private enum Customer {}
 
-// A struct mirroring real API usage: a domain id typed via `Tagged`, alongside
-// a plain scalar field. Its `Codable` is compiler-synthesized, so it exercises
-// `Tagged` nested inside a keyed container.
 private struct Account: Codable, Equatable {
     let id: Tagged<Customer, String>
     let name: String
 }
-
-// MARK: - Tagged + Codable
 
 @Suite
 struct `Tagged + Codable Tests` {
@@ -33,35 +17,25 @@ struct `Tagged + Codable Tests` {
     @Suite(.serialized) struct Performance {}
 }
 
-// MARK: - Unit
-
 extension `Tagged + Codable Tests`.Unit {
-
-    // MARK: (a) exact wire shape — bare value, no object wrapper
 
     @Test
     func `encodes as the bare underlying value, not a keyed object`() throws {
         let tagged = Tagged<Customer, String>(_unchecked: "cus_123")
         let node = try encodeToNode(tagged)
 
-        // Structural: a single string, not an object.
         #expect(node == .string("cus_123"))
 
-        // Exact JSON shape: the bare string, never `{"underlying":"cus_123"}`.
         let json = renderJSON(node)
         #expect(json == "\"cus_123\"")
         #expect(!json.contains("underlying"))
     }
-
-    // MARK: (b) decode from a bare value
 
     @Test
     func `decodes from a bare underlying value`() throws {
         let decoded = try decodeFromNode(Tagged<Customer, String>.self, .string("cus_123"))
         #expect(decoded.underlying == "cus_123")
     }
-
-    // MARK: (c) round-trip
 
     @Test
     func `round-trips through encode then decode`() throws {
@@ -70,8 +44,6 @@ extension `Tagged + Codable Tests`.Unit {
         #expect(restored == original)
     }
 }
-
-// MARK: - Edge Case
 
 extension `Tagged + Codable Tests`.`Edge Case` {
 
@@ -88,7 +60,7 @@ extension `Tagged + Codable Tests`.`Edge Case` {
         let tagged = Tagged<Customer, String>(_unchecked: #"a"b\c"#)
         let node = try encodeToNode(tagged)
         #expect(node == .string(#"a"b\c"#))
-        // Escaped, still a bare string — not a keyed object.
+
         #expect(renderJSON(node) == #""a\"b\\c""#)
         #expect(!renderJSON(node).contains("underlying"))
 
@@ -98,8 +70,7 @@ extension `Tagged + Codable Tests`.`Edge Case` {
 
     @Test
     func `non-string underlying encodes as a bare scalar`() throws {
-        // The bare-wire-form property is not string-specific: a numeric
-        // underlying serializes as the bare number, never `{"underlying":42}`.
+
         let tagged = Tagged<Customer, Int>(_unchecked: 42)
         let node = try encodeToNode(tagged)
         #expect(node == .int(42))
@@ -110,11 +81,7 @@ extension `Tagged + Codable Tests`.`Edge Case` {
     }
 }
 
-// MARK: - Integration
-
 extension `Tagged + Codable Tests`.Integration {
-
-    // MARK: (d) nested inside a Codable struct — real API usage
 
     @Test
     func `nested Tagged field in a struct encodes as a bare value`() throws {
@@ -124,7 +91,6 @@ extension `Tagged + Codable Tests`.Integration {
         )
         let json = renderJSON(try encodeToNode(account))
 
-        // The `id` field is the bare string, NOT a nested `{"underlying":…}`.
         #expect(json == "{\"id\":\"cus_123\",\"name\":\"Acme Corp\"}")
         #expect(!json.contains("underlying"))
     }
@@ -137,14 +103,11 @@ extension `Tagged + Codable Tests`.Integration {
     }
 }
 
-// MARK: - Performance
-
 extension `Tagged + Codable Tests`.Performance {
 
     @Test
     func `encode-decode round-trip holds across batched values`() throws {
-        // Smoke check that the single-value wire form is stable in a hot loop —
-        // each value must survive encode → node → decode unchanged.
+
         try (0..<1_000).forEach { i in
             let original = Tagged<Customer, Int>(_unchecked: i)
             let restored = try decodeFromNode(
@@ -155,16 +118,6 @@ extension `Tagged + Codable Tests`.Performance {
         }
     }
 }
-
-// ============================================================================
-// MARK: - Foundation-free single-value / keyed tree codec
-// ============================================================================
-//
-// A minimal, stdlib-only `Encoder`/`Decoder` pair that renders a value into an
-// in-memory `JSONNode` tree (and back), plus a compact JSON string renderer.
-// It supports single-value and keyed containers — enough to exercise a bare
-// `Tagged` and a flat `Codable` struct — and traps on unkeyed / nested / super
-// requests, which the synthesized codecs under test never use. No Foundation.
 
 private enum JSONNode: Equatable {
     case null
@@ -223,8 +176,6 @@ private func encodeToNode<T: Encodable>(_ value: T) throws -> JSONNode {
 private func decodeFromNode<T: Decodable>(_ type: T.Type, _ node: JSONNode) throws -> T {
     try T(from: TreeDecoder(node: node))
 }
-
-// MARK: Encoder
 
 private final class NodeRef {
     var node: JSONNode = .null
@@ -325,8 +276,6 @@ private final class TreeKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingCon
         fatalError("TreeEncoder: superEncoder(forKey:) is unused by these tests")
     }
 }
-
-// MARK: Decoder
 
 private struct TreeDecoder: Decoder {
     let node: JSONNode

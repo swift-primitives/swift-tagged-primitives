@@ -14,8 +14,6 @@ struct `Tagged + LosslessStringConvertible Tests` {
     @Suite(.serialized) struct Performance {}
 }
 
-// MARK: - Unit
-
 extension `Tagged + LosslessStringConvertible Tests`.Unit {
 
     @Test
@@ -44,8 +42,6 @@ extension `Tagged + LosslessStringConvertible Tests`.Unit {
     }
 }
 
-// MARK: - Edge Case
-
 extension `Tagged + LosslessStringConvertible Tests`.`Edge Case` {
 
     @Test
@@ -58,7 +54,7 @@ extension `Tagged + LosslessStringConvertible Tests`.`Edge Case` {
 
     @Test
     func `string description does not encode the phantom Tag`() {
-        // The cost of the SLI conformance: descriptions are Underlying-only.
+
         let userVal: Tagged<Tag1, Int> = 42
         let orderVal: Tagged<Tag2, Int> = 42
         #expect(userVal.description == orderVal.description)
@@ -72,8 +68,6 @@ extension `Tagged + LosslessStringConvertible Tests`.`Edge Case` {
     }
 }
 
-// MARK: - Integration
-
 extension `Tagged + LosslessStringConvertible Tests`.Integration {
 
     @Test
@@ -85,8 +79,6 @@ extension `Tagged + LosslessStringConvertible Tests`.Integration {
         }
     }
 }
-
-// MARK: - Performance
 
 extension `Tagged + LosslessStringConvertible Tests`.Performance {
 

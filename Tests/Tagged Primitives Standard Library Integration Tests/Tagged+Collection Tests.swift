@@ -13,8 +13,6 @@ struct `Tagged + Collection Tests` {
     @Suite(.serialized) struct Performance {}
 }
 
-// MARK: - Unit
-
 extension `Tagged + Collection Tests`.Unit {
 
     @Test
@@ -48,8 +46,6 @@ extension `Tagged + Collection Tests`.Unit {
     }
 }
 
-// MARK: - Edge Case
-
 extension `Tagged + Collection Tests`.`Edge Case` {
 
     @Test
@@ -67,8 +63,6 @@ extension `Tagged + Collection Tests`.`Edge Case` {
     }
 }
 
-// MARK: - Integration
-
 extension `Tagged + Collection Tests`.Integration {
 
     @Test
@@ -78,12 +72,9 @@ extension `Tagged + Collection Tests`.Integration {
         #expect(tagged.first == 3)
         #expect(tagged.contains(4))
         #expect(!tagged.contains(99))
-        // .last would require BidirectionalCollection — out of scope for the
-        // base Collection conformance the SLI ships.
+
     }
 }
-
-// MARK: - Performance
 
 extension `Tagged + Collection Tests`.Performance {
 

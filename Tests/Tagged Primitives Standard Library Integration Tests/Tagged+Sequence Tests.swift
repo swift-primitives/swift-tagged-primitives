@@ -14,8 +14,6 @@ struct `Tagged + Sequence Tests` {
     @Suite(.serialized) struct Performance {}
 }
 
-// MARK: - Unit
-
 extension `Tagged + Sequence Tests`.Unit {
 
     @Test
@@ -36,8 +34,6 @@ extension `Tagged + Sequence Tests`.Unit {
         #expect(Bool(true))
     }
 }
-
-// MARK: - Edge Case
 
 extension `Tagged + Sequence Tests`.`Edge Case` {
 
@@ -60,14 +56,11 @@ extension `Tagged + Sequence Tests`.`Edge Case` {
     }
 }
 
-// MARK: - Integration
-
 extension `Tagged + Sequence Tests`.Integration {
 
     @Test
     func `generic Sequence algorithm accepts Tagged`() {
-        // The cost the rationale critiques: a generic T: Sequence algorithm
-        // treats Tagged<Tag, [Int]> identically to [Int].
+
         func sum<S: Swift.Sequence>(_ s: S) -> Int where S.Element == Int {
             s.reduce(0, +)
         }
@@ -77,8 +70,6 @@ extension `Tagged + Sequence Tests`.Integration {
         #expect(sum(tagged) == 10)
     }
 }
-
-// MARK: - Performance
 
 extension `Tagged + Sequence Tests`.Performance {
 

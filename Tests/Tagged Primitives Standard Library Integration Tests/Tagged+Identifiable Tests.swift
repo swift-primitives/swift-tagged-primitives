@@ -18,8 +18,6 @@ struct `Tagged + Identifiable Tests` {
     @Suite(.serialized) struct Performance {}
 }
 
-// MARK: - Unit
-
 extension `Tagged + Identifiable Tests`.Unit {
 
     @Test
@@ -40,26 +38,21 @@ extension `Tagged + Identifiable Tests`.Unit {
     func `id type matches Underlying ID type`() {
         let key = DomainKey(id: 7)
         let tagged: Tagged<Tag1, DomainKey> = Tagged<Tag1, DomainKey>(_unchecked: key)
-        let _: UInt64 = tagged.id  // compiles only if Tagged.ID == DomainKey.ID == UInt64
+        let _: UInt64 = tagged.id
     }
 }
-
-// MARK: - Edge Case
 
 extension `Tagged + Identifiable Tests`.`Edge Case` {
 
     @Test
     func `phantom-Tag-distinct values with same Underlying id observe identity-inversion`() {
-        // The cost of the SLI conformance: two Tagged with different Tags but
-        // same Underlying.id collide on the Identifiable.id surface.
+
         let key = DomainKey(id: 99)
         let a: Tagged<Tag1, DomainKey> = Tagged<Tag1, DomainKey>(_unchecked: key)
         let b: Tagged<Tag2, DomainKey> = Tagged<Tag2, DomainKey>(_unchecked: key)
-        #expect(a.id == b.id)  // documented identity-inversion cost
+        #expect(a.id == b.id)
     }
 }
-
-// MARK: - Integration
 
 extension `Tagged + Identifiable Tests`.Integration {
 
@@ -73,8 +66,6 @@ extension `Tagged + Identifiable Tests`.Integration {
         #expect(describe(tagged) == "id=314")
     }
 }
-
-// MARK: - Performance
 
 extension `Tagged + Identifiable Tests`.Performance {
 

@@ -5,17 +5,9 @@ import Testing
 
 @testable import Tagged_Primitives
 
-// Tagged is generic — parallel namespace pattern per [SWIFT-TEST-003].
-
 private enum Tag1 {}
 private enum Tag2 {}
 private enum Tag3 {}
-
-// Shared fixture for ~Copyable & Carrier-conforming Underlying tests.
-// `var id` accommodates both immutable-use tests and the `modify`
-// mutating-use test. Hoisted to file scope so the typealias witness
-// `Underlying = Self` can live in an extension per [API-IMPL-008]
-// minimal-type-body — local function-scoped types cannot be extended.
 
 private struct Resource: ~Copyable, Carrier.`Protocol` {
     var id: Int
@@ -25,8 +17,6 @@ extension Resource {
     typealias Underlying = Self
 }
 
-// MARK: - Tagged
-
 @Suite
 struct `Tagged Tests` {
     @Suite struct Unit {}
@@ -35,11 +25,7 @@ struct `Tagged Tests` {
     @Suite(.serialized) struct Performance {}
 }
 
-// MARK: - Unit
-
 extension `Tagged Tests`.Unit {
-
-    // MARK: Construction
 
     @Test
     func `init stores underlying value`() {
@@ -70,8 +56,6 @@ extension `Tagged Tests`.Unit {
         let tagged: Tagged<Tag1, Double> = 3.14
         #expect(tagged.underlying == 3.14)
     }
-
-    // MARK: Zero-Cost Layout
 
     @Test
     func `Tagged Int has same MemoryLayout as Int`() {
@@ -117,8 +101,6 @@ extension `Tagged Tests`.Unit {
         )
     }
 
-    // MARK: underlying
-
     @Test
     func `underlying read returns stored value`() {
         let tagged: Tagged<Tag1, Int> = 7
@@ -132,8 +114,6 @@ extension `Tagged Tests`.Unit {
         #expect(tagged.underlying == 15)
     }
 
-    // MARK: modify (package-internal)
-
     @Test
     func `modify mutates underlying value via closure`() {
         var tagged: Tagged<Tag1, Int> = 10
@@ -144,8 +124,6 @@ extension `Tagged Tests`.Unit {
         #expect(result == 30)
         #expect(tagged.underlying == 30)
     }
-
-    // MARK: Equatable
 
     @Test
     func `equal underlying values are equal`() {
@@ -161,16 +139,12 @@ extension `Tagged Tests`.Unit {
         #expect(a != b)
     }
 
-    // MARK: Hashable
-
     @Test
     func `equal values hash equally`() {
         let a: Tagged<Tag1, Int> = 42
         let b: Tagged<Tag1, Int> = 42
         #expect(a.hashValue == b.hashValue)
     }
-
-    // MARK: Comparable
 
     @Test
     func `less than compares underlying values`() {
@@ -194,8 +168,6 @@ extension `Tagged Tests`.Unit {
         #expect(Tagged<Tag1, Int>.min(a, b) == a)
     }
 
-    // MARK: map
-
     @Test
     func `instance map transforms underlying value preserving tag`() {
         let tagged: Tagged<Tag1, Int> = 5
@@ -217,8 +189,6 @@ extension `Tagged Tests`.Unit {
         #expect(result.underlying == "42")
     }
 
-    // MARK: retag
-
     @Test
     func `instance retag changes tag preserving underlying value`() {
         let tagged: Tagged<Tag1, Int> = 42
@@ -232,8 +202,6 @@ extension `Tagged Tests`.Unit {
         let retagged = Tagged<Tag1, Int>.retag(tagged, to: Tag2.self)
         #expect(retagged.underlying == 42)
     }
-
-    // MARK: CustomStringConvertible
 
     @Test
     func `description forwards to underlying value`() {
@@ -249,11 +217,7 @@ extension `Tagged Tests`.Unit {
 
 }
 
-// MARK: - EdgeCase
-
 extension `Tagged Tests`.`Edge Case` {
-
-    // MARK: Comparable — total order properties
 
     @Test
     func `less than is irreflexive`() {
@@ -288,8 +252,6 @@ extension `Tagged Tests`.`Edge Case` {
         #expect(!(b < a))
     }
 
-    // MARK: max / min edge cases
-
     @Test
     func `max with equal values returns first`() {
         let a: Tagged<Tag1, Int> = 5
@@ -305,8 +267,6 @@ extension `Tagged Tests`.`Edge Case` {
         let result = Tagged<Tag1, Int>.min(a, b)
         #expect(result == a)
     }
-
-    // MARK: map edge cases
 
     @Test
     func `map with throwing transform propagates error`() {
@@ -335,8 +295,6 @@ extension `Tagged Tests`.`Edge Case` {
         #expect(composed == chained)
     }
 
-    // MARK: retag edge cases
-
     @Test
     func `retag round-trip preserves value`() {
         let original: Tagged<Tag1, Int> = 42
@@ -353,8 +311,6 @@ extension `Tagged Tests`.`Edge Case` {
         let direct: Tagged<Tag3, Int> = a.retag()
         #expect(c.underlying == direct.underlying)
     }
-
-    // MARK: Boundary underlying values
 
     @Test
     func `zero underlying value`() {
@@ -377,11 +333,7 @@ extension `Tagged Tests`.`Edge Case` {
     }
 }
 
-// MARK: - Integration
-
 extension `Tagged Tests`.Integration {
-
-    // MARK: Instance-static equivalence
 
     @Test
     func `instance map produces same result as static map`() {
@@ -400,8 +352,6 @@ extension `Tagged Tests`.Integration {
         let staticResult = Tagged<Tag1, Int>.retag(b, to: Tag2.self)
         #expect(instanceResult.underlying == staticResult.underlying)
     }
-
-    // MARK: Functor composition
 
     @Test
     func `map then retag composition`() {
@@ -425,8 +375,6 @@ extension `Tagged Tests`.Integration {
         #expect(mapFirst.underlying == retagFirst.underlying)
     }
 
-    // MARK: Tag isolation
-
     @Test
     func `different tags with same underlying are independent`() {
         var a: Tagged<Tag1, Int> = 42
@@ -435,8 +383,6 @@ extension `Tagged Tests`.Integration {
         #expect(a.underlying == 99)
         #expect(b.underlying == 42)
     }
-
-    // MARK: Collection interop
 
     @Test
     func `comparable ordering across multiple values`() {
@@ -453,8 +399,6 @@ extension `Tagged Tests`.Integration {
         let set: Set<Tagged<Tag1, Int>> = [a, b, c]
         #expect(set.count == 2)
     }
-
-    // MARK: ~Copyable Underlying
 
     @Test
     func `init and underlying access with noncopyable underlying value`() {
@@ -497,24 +441,15 @@ extension `Tagged Tests`.Integration {
     #if !os(Windows)
         @Test
         func `consume-extract noncopyable underlying out of consumed Tagged`() {
-            // Regression test: `public var rawValue` was a stored
-            // property allowing consume-extract on a consumed `tagged`. The
-            // 96f2a76 rename converted to a `_read` accessor and lost this
-            // capability. The fix restored a stored `public package(set) var
-            // underlying` (this experiment + main commit).
-            //
-            // This remains excluded on Windows, where the MoveOnlyChecker
-            // assertion is tracked at https://github.com/swiftlang/swift/issues/87136.
+
             func extract(_ t: consuming Tagged<Tag1, Resource>) -> Resource {
-                t.underlying  // direct stored field on consumed host: partial-consume
+                t.underlying
             }
             let tagged = Tagged<Tag1, Resource>(_unchecked: Resource(id: 7))
             let extracted = extract(tagged)
             #expect(extracted.id == 7)
         }
     #endif
-
-    // MARK: Conditional Conformances — Sendable
 
     @Test
     func `Tagged is Sendable when Underlying is Sendable`() {
@@ -523,8 +458,6 @@ extension `Tagged Tests`.Integration {
         _requireSendable(Tagged<Tag1, String>.self)
         #expect(Bool(true))
     }
-
-    // MARK: Conditional Conformances — BitwiseCopyable
 
     @Test
     func `Tagged is BitwiseCopyable when Underlying is BitwiseCopyable`() {
@@ -536,8 +469,6 @@ extension `Tagged Tests`.Integration {
         #expect(Bool(true))
     }
 
-    // MARK: Conditional Conformances — Codable
-
     @Test
     func `Tagged is Codable when Underlying is Codable`() {
         func _requireCodable<T: Codable>(_: T.Type) {}
@@ -546,51 +477,30 @@ extension `Tagged Tests`.Integration {
         #expect(Bool(true))
     }
 
-    // MARK: Conditional Conformances — Escapable lattice cell C
-
     @Test
     func `Tagged is Escapable when Underlying is Escapable & ~Copyable`() {
-        // Lattice cell C: Underlying carries Escapable (default) and ~Copyable.
-        // The conformance `Tagged: Escapable where Underlying: Escapable & ~Copyable`
-        // (Tagged.swift line 69) is asserted at compile time via
-        // _requireEscapable; the helper accepts ~Copyable types so the
-        // resulting Tagged<Tag, Resource> (which is ~Copyable & Escapable
-        // per cell C) is admitted.
+
         func _requireEscapable<T: Escapable & ~Copyable>(_: T.Type) {}
         _requireEscapable(Tagged<Tag1, Resource>.self)
         #expect(Bool(true))
     }
 
-    // MARK: ~Escapable Underlying support (commit 1cf5396)
-
     @Test
     func `Tagged admits ~Escapable Underlying in MemoryLayout`() {
-        // A ~Copyable & ~Escapable Underlying should produce a Tagged
-        // whose layout matches — the phantom Tag contributes nothing.
+
         struct Scoped: ~Copyable, ~Escapable { let raw: Int }
         #expect(MemoryLayout<Tagged<Tag1, Scoped>>.size == MemoryLayout<Scoped>.size)
         #expect(MemoryLayout<Tagged<Tag1, Scoped>>.stride == MemoryLayout<Scoped>.stride)
         #expect(MemoryLayout<Tagged<Tag1, Scoped>>.alignment == MemoryLayout<Scoped>.alignment)
     }
 
-    // Note: `Tagged: Ownership.Borrow.Protocol` conformance now lives in
-    // swift-ownership-primitives (Sources/Ownership Borrow Primitives/
-    // Tagged+Ownership.Borrow.Protocol.swift) per the ecosystem pattern
-    // where Tagged conformances to non-stdlib capability protocols live
-    // with the protocol's home package. The conformance test moved with
-    // it.
 }
-
-// MARK: - Performance
 
 extension `Tagged Tests`.Performance {
 
     @Test
     func `retag round-trip identity holds across batched operations`() {
-        // Smoke test for the zero-cost retag claim — exercises the hot path
-        // in a release-mode-equivalent loop. The codegen experiment
-        // (Experiments/tagged-zero-cost-codegen) carries the rigorous
-        // proof; this guards against runtime regressions.
+
         var sum: Int = 0
         (0..<1_000).forEach { i in
             let tagged: Tagged<Tag1, Int> = .init(_unchecked: i)

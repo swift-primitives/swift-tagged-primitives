@@ -14,8 +14,6 @@ struct `Tagged + Literals Tests` {
     @Suite(.serialized) struct Performance {}
 }
 
-// MARK: - Unit
-
 extension `Tagged + Literals Tests`.Unit {
 
     @Test
@@ -75,8 +73,6 @@ extension `Tagged + Literals Tests`.Unit {
     }
 }
 
-// MARK: - Edge Case
-
 extension `Tagged + Literals Tests`.`Edge Case` {
 
     @Test
@@ -103,8 +99,6 @@ extension `Tagged + Literals Tests`.`Edge Case` {
     }
 }
 
-// MARK: - Integration
-
 extension `Tagged + Literals Tests`.Integration {
 
     @Test
@@ -113,7 +107,7 @@ extension `Tagged + Literals Tests`.Integration {
         let a: Tagged<Tag1, Int> = 42
         let b: Tagged<Other, Int> = 42
         #expect(type(of: a) != type(of: b))
-        // a == b would not compile — different types preserved by phantom Tag.
+
     }
 
     @Test
@@ -123,8 +117,6 @@ extension `Tagged + Literals Tests`.Integration {
         #expect(viaLiteral == viaCanonical)
     }
 }
-
-// MARK: - Performance
 
 extension `Tagged + Literals Tests`.Performance {
 

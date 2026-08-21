@@ -97,13 +97,6 @@ for target in package.targets where ![.system, .binary, .plugin, .macro].contain
         .enableUpcomingFeature("InferIsolatedConformances"),
     ]
 
-    // Platforms whose Swift SDK can compile the `Synchronization` module.
-    // Android is excluded because the swift-android-sdk artifact bundle's
-    // `SwiftOverlayShims/LibcOverlayShims.h` includes `<semaphore.h>`, which
-    // Bionic libc does not ship as a standalone header (upstream gap in the
-    // community Android Swift SDK). Embedded targets lack Synchronization
-    // entirely. Source files that import Synchronization should guard with
-    // `#if SYNCHRONIZATION_AVAILABLE`.
     let package: [SwiftSetting] = [
         .define(
             "SYNCHRONIZATION_AVAILABLE",
