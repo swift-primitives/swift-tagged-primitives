@@ -94,7 +94,6 @@ for target in package.targets where ![.system, .binary, .plugin, .macro].contain
         .enableUpcomingFeature("MemberImportVisibility"),
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .enableExperimentalFeature("Lifetimes"),
-        .enableExperimentalFeature("SuppressedAssociatedTypes"),
         .enableUpcomingFeature("InferIsolatedConformances"),
         .enableUpcomingFeature("LifetimeDependence"),
     ]
